@@ -1,0 +1,4 @@
+petclinic
+=========
+
+Petclinic springsource example
