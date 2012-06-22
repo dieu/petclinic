@@ -111,6 +111,12 @@
             <version>3.3.2.GA</version>
         </dependency>
 
+        <dependency>
+            <groupId>javax.transaction</groupId>
+            <artifactId>jta</artifactId>
+            <version>1.1</version>
+        </dependency>
+
         <!-- JPA -->
         <dependency>
             <groupId>javax.persistence</groupId>
