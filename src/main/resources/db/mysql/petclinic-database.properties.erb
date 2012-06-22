@@ -9,7 +9,7 @@ jpa.showSql=true
 # MySQL Settings
 
 jdbc.driverClassName=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://<%= @variables['hosts'].join(",") %>:<%= @variables['port'] %>/<%= @variables['database'] %>
+jdbc.url=jdbc:mysql://<%= @variables['hosts'].join(",") %>:<%= @variables['port'] %>/<%= @variables['database'] %>?autoReconnect=true
 jdbc.username=<%= @variables['username'] %>
 jdbc.password=<%= @variables['password'] %>
 
