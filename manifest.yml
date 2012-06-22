@@ -46,6 +46,7 @@ launch:
                 phase: install-db
                 roles: [ db-node ]
 
+
         - install-app:
             action: tomcat.install
             parameters:
@@ -58,16 +59,17 @@ launch:
                 phase: install-lb
                 roles: [ lb-node ]
 
-#        - deploy-database:
-#            action: mysql.create-database
-#            parameters:
-#                phase: deploy-db
-#                precedingPhases: [ install-db ]
-#                roles: [ db-node ]
-#                jattrs:
-#                    database:
-#                        scheme: "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/jpetstore-mysql-schema.sql"
-#                        data:   "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/jpetstore-mysql-dataload.sql"
+        - deploy-database:
+            action: mysql.create-database
+            parameters:
+                phase: deploy-db
+                precedingPhases: [ install-db ]
+                roles: [ db-node ]
+                jattrs:
+                    database:
+                        name: "petclinic"
+                        schema: "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-mysql-schema.sql"
+                        data:   "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-mysql-dataload.sql"
 
         - deploy-app:
             action: war.deploy
@@ -91,6 +93,7 @@ launch:
                         to: "jdbc.properties"
                         variables:
                             hosts: $db-hosts
+                            database: "petclinic"
 
         - setup-lb:
             action: haproxy.rebalance
@@ -233,7 +236,7 @@ update:
                 jattrs:
                     configure:
                         source: "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-database.properties.erb"
-                        to: "jdbc.properties"
+                        to: "classes/jdbc.properties"
                         variables:
                             hosts: $db-hosts
 
