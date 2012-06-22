@@ -24,6 +24,7 @@
 			p:dataSource-ref="dataSource" p:mappingResources="petclinic.hbm.xml">
 		<property name="hibernateProperties">
 			<props>
+				<prop key="hibernate.connection.provider_class">org.hibernate.connection.C3P0ConnectionProvider</prop>
 				<prop key="hibernate.dialect">${hibernate.dialect}</prop>
 				<prop key="hibernate.show_sql">${hibernate.show_sql}</prop>
 				<prop key="hibernate.generate_statistics">${hibernate.generate_statistics}</prop>
@@ -72,6 +73,6 @@
 	<bean id="clinic" class="org.springframework.samples.petclinic.hibernate.HibernateClinic"/>
 
 	<!-- Hibernate's JMX statistics service -->
-	<bean name="petclinic:type=HibernateStatistics" class="org.hibernate.jmx.StatisticsService" autowire="byName"/>
+	<!--<bean name="petclinic:type=HibernateStatistics" class="org.hibernate.jmx.StatisticsService" autowire="byName"/>-->
 
 </beans>

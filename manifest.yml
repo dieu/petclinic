@@ -5,109 +5,79 @@ launch:
             default: 1
             min: 1
             max: 20
-        - app-fork:
+        - app-fork: &app-fork
             description: Source control fork
-            default: "dieu"
-        - app-branch:
+            default: "qubell"
+        - app-branch: &app-branch
             description: Source control branch
             default: "HEAD"
-        - app-version:
-            description: Version of the build artifacts
-            default: "1.0.0-SNAPSHOT"
-            enum:
-                "Latest": "1.0.0-SNAPSHOT"
-                "Stable": "1.0.0"
     steps:
-        - provision-db-tier:
-            action: compute.grow
+        - db-tier:
+            action: .compute.grow
             parameters:
                 roleName: db-node
             output:
                  db-hosts: ips
 
-        - provision-app-tier:
-            action: compute.grow
+        - app-tier:
+            action: .compute.grow
             parameters:
                 roleName: app-node
-                quantity: $app-tier-size
+                quantity: ${app-tier-size}
             output:
                 app-hosts: ips
 
-        - provision-lb:
-            action: compute.grow
+        - lb-tier:
+            action: .compute.grow
             parameters:
                 roleName: lb-node
             output:
                 lb-hosts: ips
 
-        - install-database:
-            action: mysql.install
+        - database:
+            action: .deploy.db
+            precedingPhases: [ provision ]
+            phase: deploy-db
             parameters:
-                phase: install-db
-                roles: [ db-node ]
+              app-fork: ${app-fork}
+              app-branch: ${app-branch}
 
-        - install-app:
-            action: tomcat.install
+        - lb-install:
+            action: "chefrun"
+            precedingPhases: [ provision ]
+            phase: install-lb
             parameters:
-                phase: install-app
-                roles: [ app-node ]
+              roles: [ lb-node ]
+              runList: ["recipe[haproxy]"]
+              isSolo: true
+              recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
 
-        - install-lb:
-            action: haproxy.install
+        - app:
+            action: .install.app
+            precedingPhases: [ provision ]
+            phase: deploy-app
             parameters:
-                phase: install-lb
-                roles: [ lb-node ]
-
-#        - deploy-database:
-#            action: mysql.create-database
-#            parameters:
-#                phase: deploy-db
-#                precedingPhases: [ install-db ]
-#                roles: [ db-node ]
-#                jattrs:
-#                    database:
-#                        scheme: "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/jpetstore-mysql-schema.sql"
-#                        data:   "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/jpetstore-mysql-dataload.sql"
-
-        - deploy-app:
-            action: war.deploy
-            parameters:
-                phase: deploy-app
-                precedingPhases: [ install-app ]
-                roles: [ app-node ]
-                jattrs:
-                    war:
-                        deploy: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/org.springframework.samples.jpetstore-${app-version}.war"
-
-        - configure-datasource:
-            action: propfile.configure
-            parameters:
-                phase: configure-app
-                precedingPhases: [ deploy-app, deploy-db ]
-                roles: [ app-node ]
-                jattrs:
-                    configure:
-                        source: "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/petclinic-database.properties.erb"
-                        to: "jdbc.properties"
-                        variables:
-                            hosts: $db-hosts
-
-        - setup-lb:
-            action: haproxy.rebalance
-            parameters:
-                precedingPhases: [ deploy-app ]
-                roles: [ lb-node ]
-                jattrs:
-                    haproxy.rebalance:
-                        nodes: $app-hosts
+              db-hosts: ${db-hosts}
+              app-hosts: ${app-hosts}
+              app-fork: ${app-fork}
+              app-branch: ${app-branch}
 
     return:
+        db-hosts:
+            description: Database IP address
+            value: ${db-hosts}
+        app-hosts:
+            description: Application IP address
+            value: ${app-hosts}
+        lb-hosts:
+            description: Loab Balancer IP address
+            value: ${lb-hosts}
         app-url:
             description: Url to the application
-            value: http://${lb-hosts}
+            value: "http://{$.lb-tier~hosts[0]}"
         haproxy-url:
             description: Url to haproxy stats
-            value: http://${lb-hosts}:22002/
+            value: "http://{$.lb-tier~hosts[0]}:22002/"
 
 scale-up:
     parameters:
@@ -116,65 +86,32 @@ scale-up:
             default: 1
             min: 1
             max: 20
-        - app-fork:
-            description: Source control fork
-            default: "graven"
-        - app-branch:
-            description: Source control branch
-            default: "HEAD"
-        - app-version:
-            description: Version of the build artifacts
-            default: "1.0.0-SNAPSHOT"
-            enum:
-                "Latest": "1.0.0-SNAPSHOT"
-                "Stable": "1.0.0"
+        - app-fork: *app-fork
+        - app-branch: *app-branch
 
     steps:
-        - grow-app-tier:
-            action: compute.grow
+        - app-tier:
+            action: .compute.grow
             parameters:
                 roleName: app-node
-                quantity: $app-count
+                quantity: ${app-count}
             output:
                 app-hosts: ips
 
-        - install-app:
-            action: tomcat.install
+        - app:
+            action: .install.app
+            precedingPhases: [ provision ]
+            phase: deploy-app
             parameters:
-                phase: install-app
-                roles: [ app-node ]
+              db-hosts: ${db-hosts}
+              app-hosts: ${app-hosts}
+              app-fork: ${app-fork}
+              app-branch: ${app-branch}
 
-        - deploy-app:
-            action: war.deploy
-            parameters:
-                phase: deploy-app
-                precedingPhases: [ install-app ]
-                roles: [ app-node ]
-                jattrs:
-                    war:
-                        deploy: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/org.springframework.samples.jpetstore-${app-version}.war"
-
-        - configure-datasource:
-            action: propfile.configure
-            parameters:
-                phase: configure-app
-                precedingPhases: [ deploy-app ]
-                roles: [ app-node ]
-                jattrs:
-                    configure:
-                        source: "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/petclinic-database.properties.erb"
-                        to: "jdbc.properties"
-                        variables:
-                            hosts: $db-hosts
-
-        - update-lb:
-            action: haproxy.rebalance
-            parameters:
-                precedingPhases: [ deploy-app ]
-                roles: [ lb-node ]
-                jattrs:
-                    haproxy.rebalance:
-                        nodes: $app-hosts
+    return:
+        app-hosts:
+            description: Application IP address
+            value: ${app-hosts}
 
 scale-down:
     parameters:
@@ -185,59 +122,201 @@ scale-down:
             max: 20
     steps:
         - shrink-app-tier:
-            action: compute.shrink
+            action: "destroyVms"
             parameters:
-                roleName: app-node
-                quantity: $app-count
+              phase: "destroy"
+              roleName: app-node
+              quantity: ${app-count}
 
-        - update-lb:
-            action: haproxy.rebalance
+        - setup-lb:
+            action: .setup.lb
+            precedingPhases: [ destroy ]
+            phase: setup-lb
             parameters:
-                precedingPhases: [ destroy ]
-                roles: [ lb-node ]
-                jattrs:
-                    haproxy.rebalance:
-                        nodes: $app-hosts
+               app-hosts: ${app-hosts}
+
+    return:
+        app-hosts:
+            description: Application IP address
+            value: ${app-hosts}
+
 
 update:
     parameters:
-        - app-fork:
-            description: Source control fork
-            default: "graven"
-        - app-branch:
-            description: Source control branch
-            default: "HEAD"
-        - app-version:
-            description: Version of the build artifacts
-            default: "1.0.0-SNAPSHOT"
-            enum:
-                "Latest": "1.0.0-SNAPSHOT"
-                "Stable": "1.0.0"
+        - app-fork: *app-fork
+        - app-branch: *app-branch
 
     steps:
-        - redeploy-app:
-            action: war.deploy
+        - update-app:
+            action: .deploy.app
             parameters:
-                phase: deploy-app
-                roles: [ app-node ]
-                jattrs:
-                    war:
-                        deploy: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/org.springframework.samples.jpetstore-${app-version}.war"
-
-        - configure-datasource:
-            action: propfile.configure
-            parameters:
-                phase: configure-app
-                precedingPhases: [ deploy-app ]
-                roles: [ app-node ]
-                jattrs:
-                    configure:
-                        source: "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/petclinic-database.properties.erb"
-                        to: "jdbc.properties"
-                        variables:
-                            hosts: $db-hosts
+              db-hosts: ${db-hosts}
+              app-fork: ${app-fork}
+              app-branch: ${app-branch}
 
 destroy:
     steps:
         - destroy:
             action: compute.shrink-all
+
+
+.compute.grow:
+  parameters:
+    - phase:
+        default: provision
+    - roleName:
+        default: defaultRole
+    - quantity:
+        default: 1
+    - identity:
+        default: undefined
+    - credential:
+        default: undefined
+  steps:
+    provision-vms:
+      action: "provisionVms"
+      parameters:
+         phase: ${phase}
+         roleName: ${roleName}
+         hardwareId: m1.small
+         quantity: ${quantity}
+         retryCount: 1
+         jcloudsProvider: aws-ec2
+         jcloudsEndpoint: https://ec2.us-east-1.amazonaws.com
+         jcloudsRegions: us-east-1
+         jcloudsNodeNamePrefix: petclinic
+         jcloudsIdentity: ${identity}
+         jcloudsCredential: ${credential}
+         vmIdentity: ubuntu
+         imageId: us-east-1/ami-0fac7566
+         ec2SecurityGroup: default
+      output:
+         hosts: ips
+  return:
+    ips:
+      value: ${hosts}
+
+.deploy.db:
+  parameters:
+    - app-fork: *app-fork
+    - app-branch: *app-branch
+  steps:
+    - install-database:
+        action: "chefrun"
+        phase: install-db
+        parameters:
+          roles: [ db-node ]
+          runList: ["recipe[mysql::server]"]
+          isSolo: true
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
+          jattrs:
+              mysql:
+                server_root_password: e653e94ee8d064ec95ef5a1381c87a23
+                server_repl_password: e653e94ee8d064ec95ef5a1381c87a23
+                server_debian_password: e653e94ee8d064ec95ef5a1381c87a23
+
+    - deploy-database:
+        action: "chefrun"
+        phase: deploy-db
+        precedingPhases: [ install-db ]
+        parameters:
+          roles: [ db-node ]
+          runList: ["recipe[war::mysql]"]
+          isSolo: true
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
+          jattrs:
+              database:
+                name: "petclinic"
+                schema: "https://raw.github.com/${app-fork}/starter-java-web/${app-branch}/src/main/resources/db/mysql/petclinic-mysql-schema.sql"
+                data:   "https://raw.github.com/${app-fork}/starter-java-web/${app-branch}/src/main/resources/db/mysql/petclinic-mysql-dataload.sql"
+
+.deploy.app:
+  parameters:
+    - db-hosts:
+        description: Database IP address
+    - app-fork: *app-fork
+    - app-branch: *app-branch
+  steps:
+    - deploy-app:
+        action: "chefrun"
+        phase: deploy-app
+        parameters:
+          roles: [ app-node ]
+          runList: ["recipe[war]"]
+          isSolo: true
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
+          jattrs:
+            war:
+              deploy:
+                git:
+                  url: git://github.com/${app-fork}/starter-java-web.git
+                  revision: ${app-branch}
+
+    - configure-datasource:
+        action: "chefrun"
+        phase: configure-app
+        precedingPhases: [ deploy-app ]
+        parameters:
+          roles: [ app-node ]
+          runList: ["recipe[war::configure]"]
+          isSolo: true
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
+          jattrs:
+            configure:
+              source: "https://raw.github.com/${app-fork}/starter-java-web/${app-branch}/src/main/resources/db/mysql/petclinic-database.properties.erb"
+              to: "classes/jdbc.properties"
+              variables:
+                hosts: ${db-hosts}
+                database: "petclinic"
+
+.setup.lb:
+  parameters:
+    - app-hosts:
+        description: Application IP address
+  steps:
+    - setup-lb:
+        action: "chefrun"
+        parameters:
+          roles: [ lb-node ]
+          runList: ["recipe[war::lb]"]
+          isSolo: true
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
+          jattrs:
+            haproxy.rebalance:
+              nodes: ${app-hosts}
+
+.install.app:
+  parameters:
+    - db-hosts:
+        description: Database IP address
+    - app-hosts:
+        description: Application IP address
+    - app-fork: *app-fork
+    - app-branch: *app-branch
+  steps:
+    - install-app:
+        action: "chefrun"
+        phase: install-app
+        parameters:
+          roles: [ app-node ]
+          runList: ["recipe[tomcat]"]
+          isSolo: true
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
+
+    - deploy:
+        action: .deploy.app
+        phase: deploy-app
+        precedingPhases: [ install-app ]
+        parameters:
+          db-hosts: ${db-hosts}
+          app-fork: ${app-fork}
+          app-branch: ${app-branch}
+
+    - setup-lb:
+        action: .setup.lb
+        precedingPhases: [ deploy-app ]
+        phase: setup-lb
+        parameters:
+          app-hosts: ${app-hosts}
+
+

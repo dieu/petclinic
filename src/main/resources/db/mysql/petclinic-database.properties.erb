@@ -9,13 +9,13 @@ jpa.showSql=true
 # MySQL Settings
 
 jdbc.driverClassName=com.mysql.jdbc.Driver
-jdbc.url=jdbc:mysql://<%= @variables['hosts'].join(",") %>:<%= @variables['port'] %>/<%= @variables['database'] %>
+jdbc.url=jdbc:mysql://<%= @variables['hosts'].join(",") %>:<%= @variables['port'] %>/<%= @variables['database'] %>?autoReconnect=true
 jdbc.username=<%= @variables['username'] %>
 jdbc.password=<%= @variables['password'] %>
 
-# Properties that control the population of schema and data for a new data source
-jdbc.initLocation=classpath:db/mysql/petclinit-mysql-schema.sql
-jdbc.dataLocation=classpath:db/mysql/petclinic-mysql-dataload.sql
+## Properties that control the population of schema and data for a new data source
+#jdbc.initLocation=classpath:db/mysql/petclinit-mysql-schema.sql
+#jdbc.dataLocation=classpath:db/mysql/petclinic-mysql-dataload.sql
 
 # Property that determines which Hibernate dialect to use
 # (only applied with "applicationContext-hibernate.xml")
