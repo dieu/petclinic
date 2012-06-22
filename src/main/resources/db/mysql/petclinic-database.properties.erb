@@ -1,0 +1,29 @@
+#-------------------------------------------------------------------------------
+# Common Settings
+
+hibernate.generate_statistics=true
+hibernate.show_sql=true
+jpa.showSql=true
+
+#-------------------------------------------------------------------------------
+# MySQL Settings
+
+jdbc.driverClassName=com.mysql.jdbc.Driver
+jdbc.url=jdbc:mysql://<%= @variables['hosts'].join(",") %>:<%= @variables['port'] %>/<%= @variables['database'] %>
+jdbc.username=<%= @variables['username'] %>
+jdbc.password=<%= @variables['password'] %>
+
+# Properties that control the population of schema and data for a new data source
+jdbc.initLocation=classpath:db/mysql/petclinit-mysql-schema.sql
+jdbc.dataLocation=classpath:db/mysql/petclinic-mysql-dataload.sql
+
+# Property that determines which Hibernate dialect to use
+# (only applied with "applicationContext-hibernate.xml")
+hibernate.dialect=org.hibernate.dialect.MySQLDialect
+
+# Property that determines which JPA DatabasePlatform to use with TopLink Essentials
+jpa.databasePlatform=oracle.toplink.essentials.platform.database.MySQL4Platform
+
+# Property that determines which database to use with an AbstractJpaVendorAdapter
+jpa.database=MYSQL
+

@@ -1,0 +1,243 @@
+launch:
+    parameters:
+        - app-tier-size:
+            description: Number of servers in app tier
+            default: 1
+            min: 1
+            max: 20
+        - app-fork:
+            description: Source control fork
+            default: "dieu"
+        - app-branch:
+            description: Source control branch
+            default: "HEAD"
+        - app-version:
+            description: Version of the build artifacts
+            default: "1.0.0-SNAPSHOT"
+            enum:
+                "Latest": "1.0.0-SNAPSHOT"
+                "Stable": "1.0.0"
+    steps:
+        - provision-db-tier:
+            action: compute.grow
+            parameters:
+                roleName: db-node
+            output:
+                 db-hosts: ips
+
+        - provision-app-tier:
+            action: compute.grow
+            parameters:
+                roleName: app-node
+                quantity: $app-tier-size
+            output:
+                app-hosts: ips
+
+        - provision-lb:
+            action: compute.grow
+            parameters:
+                roleName: lb-node
+            output:
+                lb-hosts: ips
+
+        - install-database:
+            action: mysql.install
+            parameters:
+                phase: install-db
+                roles: [ db-node ]
+
+        - install-app:
+            action: tomcat.install
+            parameters:
+                phase: install-app
+                roles: [ app-node ]
+
+        - install-lb:
+            action: haproxy.install
+            parameters:
+                phase: install-lb
+                roles: [ lb-node ]
+
+#        - deploy-database:
+#            action: mysql.create-database
+#            parameters:
+#                phase: deploy-db
+#                precedingPhases: [ install-db ]
+#                roles: [ db-node ]
+#                jattrs:
+#                    database:
+#                        scheme: "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/jpetstore-mysql-schema.sql"
+#                        data:   "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/jpetstore-mysql-dataload.sql"
+
+        - deploy-app:
+            action: war.deploy
+            parameters:
+                phase: deploy-app
+                precedingPhases: [ install-app ]
+                roles: [ app-node ]
+                jattrs:
+                    war:
+                        deploy: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/org.springframework.samples.jpetstore-${app-version}.war"
+
+        - configure-datasource:
+            action: propfile.configure
+            parameters:
+                phase: configure-app
+                precedingPhases: [ deploy-app, deploy-db ]
+                roles: [ app-node ]
+                jattrs:
+                    configure:
+                        source: "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/petclinic-database.properties.erb"
+                        to: "jdbc.properties"
+                        variables:
+                            hosts: $db-hosts
+
+        - setup-lb:
+            action: haproxy.rebalance
+            parameters:
+                precedingPhases: [ deploy-app ]
+                roles: [ lb-node ]
+                jattrs:
+                    haproxy.rebalance:
+                        nodes: $app-hosts
+
+    return:
+        app-url:
+            description: Url to the application
+            value: http://${lb-hosts}
+        haproxy-url:
+            description: Url to haproxy stats
+            value: http://${lb-hosts}:22002/
+
+scale-up:
+    parameters:
+        - app-count:
+            description: Additional servers in app tier
+            default: 1
+            min: 1
+            max: 20
+        - app-fork:
+            description: Source control fork
+            default: "graven"
+        - app-branch:
+            description: Source control branch
+            default: "HEAD"
+        - app-version:
+            description: Version of the build artifacts
+            default: "1.0.0-SNAPSHOT"
+            enum:
+                "Latest": "1.0.0-SNAPSHOT"
+                "Stable": "1.0.0"
+
+    steps:
+        - grow-app-tier:
+            action: compute.grow
+            parameters:
+                roleName: app-node
+                quantity: $app-count
+            output:
+                app-hosts: ips
+
+        - install-app:
+            action: tomcat.install
+            parameters:
+                phase: install-app
+                roles: [ app-node ]
+
+        - deploy-app:
+            action: war.deploy
+            parameters:
+                phase: deploy-app
+                precedingPhases: [ install-app ]
+                roles: [ app-node ]
+                jattrs:
+                    war:
+                        deploy: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/org.springframework.samples.jpetstore-${app-version}.war"
+
+        - configure-datasource:
+            action: propfile.configure
+            parameters:
+                phase: configure-app
+                precedingPhases: [ deploy-app ]
+                roles: [ app-node ]
+                jattrs:
+                    configure:
+                        source: "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/petclinic-database.properties.erb"
+                        to: "jdbc.properties"
+                        variables:
+                            hosts: $db-hosts
+
+        - update-lb:
+            action: haproxy.rebalance
+            parameters:
+                precedingPhases: [ deploy-app ]
+                roles: [ lb-node ]
+                jattrs:
+                    haproxy.rebalance:
+                        nodes: $app-hosts
+
+scale-down:
+    parameters:
+        - app-count:
+            description: Number of app tier servers to remove
+            default: 1
+            min: 1
+            max: 20
+    steps:
+        - shrink-app-tier:
+            action: compute.shrink
+            parameters:
+                roleName: app-node
+                quantity: $app-count
+
+        - update-lb:
+            action: haproxy.rebalance
+            parameters:
+                precedingPhases: [ destroy ]
+                roles: [ lb-node ]
+                jattrs:
+                    haproxy.rebalance:
+                        nodes: $app-hosts
+
+update:
+    parameters:
+        - app-fork:
+            description: Source control fork
+            default: "graven"
+        - app-branch:
+            description: Source control branch
+            default: "HEAD"
+        - app-version:
+            description: Version of the build artifacts
+            default: "1.0.0-SNAPSHOT"
+            enum:
+                "Latest": "1.0.0-SNAPSHOT"
+                "Stable": "1.0.0"
+
+    steps:
+        - redeploy-app:
+            action: war.deploy
+            parameters:
+                phase: deploy-app
+                roles: [ app-node ]
+                jattrs:
+                    war:
+                        deploy: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/org.springframework.samples.jpetstore-${app-version}.war"
+
+        - configure-datasource:
+            action: propfile.configure
+            parameters:
+                phase: configure-app
+                precedingPhases: [ deploy-app ]
+                roles: [ app-node ]
+                jattrs:
+                    configure:
+                        source: "https://raw.github.com/${app-fork}/petstore/${app-branch}/db/mysql/petclinic-database.properties.erb"
+                        to: "jdbc.properties"
+                        variables:
+                            hosts: $db-hosts
+
+destroy:
+    steps:
+        - destroy:
+            action: compute.shrink-all
