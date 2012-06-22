@@ -72,6 +72,6 @@
 	<bean id="clinic" class="org.springframework.samples.petclinic.hibernate.HibernateClinic"/>
 
 	<!-- Hibernate's JMX statistics service -->
-	<bean name="petclinic:type=HibernateStatistics" class="org.hibernate.jmx.StatisticsService" autowire="byName"/>
+	<!--<bean name="petclinic:type=HibernateStatistics" class="org.hibernate.jmx.StatisticsService" autowire="byName"/>-->
 
 </beans>
