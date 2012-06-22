@@ -118,7 +118,7 @@ scale-up:
             max: 20
         - app-fork:
             description: Source control fork
-            default: "graven"
+            default: "dieu"
         - app-branch:
             description: Source control branch
             default: "HEAD"
@@ -203,7 +203,7 @@ update:
     parameters:
         - app-fork:
             description: Source control fork
-            default: "graven"
+            default: "dieu"
         - app-branch:
             description: Source control branch
             default: "HEAD"
