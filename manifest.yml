@@ -90,7 +90,7 @@ launch:
                 jattrs:
                     configure:
                         source: "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-database.properties.erb"
-                        to: "jdbc.properties"
+                        to: "classes/jdbc.properties"
                         variables:
                             hosts: $db-hosts
                             database: "petclinic"
@@ -166,9 +166,10 @@ scale-up:
                 jattrs:
                     configure:
                         source: "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-database.properties.erb"
-                        to: "jdbc.properties"
+                        to: "classes/jdbc.properties"
                         variables:
                             hosts: $db-hosts
+                            database: "petclinic"
 
         - update-lb:
             action: haproxy.rebalance
@@ -239,6 +240,7 @@ update:
                         to: "classes/jdbc.properties"
                         variables:
                             hosts: $db-hosts
+                            database: "petclinic"
 
 destroy:
     steps:
