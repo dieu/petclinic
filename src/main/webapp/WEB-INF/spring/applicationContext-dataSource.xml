@@ -18,12 +18,17 @@
 	<context:property-placeholder location="classpath:jdbc.properties"/>
 
 	<!-- DataSource configuration for Apache Commons DBCP. -->
-	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close"
-			p:driverClassName="${jdbc.driverClassName}" p:url="${jdbc.url}"
-			p:username="${jdbc.username}" p:password="${jdbc.password}"
-            p:maxActive="50"
-            p:maxIdle="10"
-            p:maxWait="10000"
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close"
+			p:driverClass="${jdbc.driverClassName}" p:jdbcUrl="${jdbc.url}"
+			p:user="${jdbc.username}" p:password="${jdbc.password}"
+            p:initialPoolSize="1" 
+  	    p:maxIdleTime="1800"
+   	    p:maxPoolSize="10"
+	    p:minPoolSize="1" 
+ 	    p:checkoutTimeout="1000"
+	    p:idleConnectionTestPeriod="55"
+	    p:testConnectionOnCheckout="true"
+	    p:preferredTestQuery="select 1"
             />
 	
 	<!-- JNDI DataSource for JEE environments -->
