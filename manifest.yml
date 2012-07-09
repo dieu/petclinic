@@ -195,8 +195,10 @@ scale-up:
         - grow-app-tier:
             action: compute.grow
             parameters:
-                roleName: app-node
+                vmIdentity: root
+                imageId: us-east-1/ami-3aeb7853
                 quantity: ${app-count}
+                roleName: app-node
             output:
                 app-hosts: ips
 
@@ -210,8 +212,9 @@ scale-up:
                 runList: ["recipe[weblogic::wl_create_domain]", "recipe[weblogic::wl_domain_start]"]
                 jattrs:
                     weblogic:
-                        oracle_home: "/opt/oracle/middleware/"
+                        wl_domain_port: 8080
                         wl_home: "/opt/oracle/middleware/wlserver_10.3/"
+                        oracle_home: "/opt/oracle/middleware/"
                         jdk: "/usr/java/latest"
 
 
