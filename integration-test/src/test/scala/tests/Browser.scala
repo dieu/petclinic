@@ -9,6 +9,7 @@ import org.openqa.selenium.remote.{DesiredCapabilities, RemoteWebDriver}
 import java.net.URL
 import tests.Config
 import java.util.logging.Level
+import java.util.concurrent.TimeUnit
 
 trait BrowserContext {
   implicit def driver: WebDriver
@@ -53,7 +54,7 @@ object Browser {
       }
       case _ => throw new IllegalArgumentException("unsupported driver")
     }
-    //implicitWait(){} //turns on default implicit wait
+    driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS)
     drv
   }
 
