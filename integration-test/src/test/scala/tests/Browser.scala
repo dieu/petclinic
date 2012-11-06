@@ -54,7 +54,7 @@ object Browser {
       }
       case _ => throw new IllegalArgumentException("unsupported driver")
     }
-    driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS)
+    drv.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS)
     drv
   }
 
