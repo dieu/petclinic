@@ -37,7 +37,8 @@ object PetclinicBuild extends Build {
       "Typesafe releases" at "http://repo.typesafe.com/typesafe/releases",
       "Typesafe snapshots" at "http://repo.typesafe.com/typesafe/snapshots",
       "Sonatype releases" at "https://oss.sonatype.org/content/repositories/releases",
-      "Cometera Inc snapshots" at "https://raw.github.com/cometera/mvn-repo/master/snapshots"
+      "Cometera Inc snapshots" at "https://raw.github.com/cometera/mvn-repo/master/snapshots",
+      "LDS" at "https://code.lds.org/nexus/content/groups/main-repo"
     )
   )
 
