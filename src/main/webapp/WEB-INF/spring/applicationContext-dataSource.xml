@@ -2,14 +2,16 @@
 <!--
 	Application context definition for PetClinic Datasource.
 -->
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xmlns:p="http://www.springframework.org/schema/p"
-		xmlns:context="http://www.springframework.org/schema/context" 
-		xmlns:jdbc="http://www.springframework.org/schema/jdbc"
-		xsi:schemaLocation="
-			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xmlns:jee="http://www.springframework.org/schema/jee"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
 			http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-			http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
+			http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd
+			http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd">
 				
 	<!-- ========================= DATASOURCE DEFINITION ========================= -->				
 
@@ -18,23 +20,24 @@
 	<context:property-placeholder location="classpath:jdbc.properties"/>
 
 	<!-- DataSource configuration for Apache Commons DBCP. -->
+    <!--
 	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close"
 			p:driverClass="${jdbc.driverClassName}" p:jdbcUrl="${jdbc.url}"
 			p:user="${jdbc.username}" p:password="${jdbc.password}"
-            p:initialPoolSize="1" 
+            p:initialPoolSize="1"
   	    p:maxIdleTime="1800"
    	    p:maxPoolSize="10"
-	    p:minPoolSize="1" 
+	    p:minPoolSize="1"
  	    p:checkoutTimeout="1000"
 	    p:idleConnectionTestPeriod="55"
 	    p:testConnectionOnCheckout="true"
 	    p:preferredTestQuery="select 1"
             />
+    -->
 	
 	<!-- JNDI DataSource for JEE environments -->
-	<!--
-	<jee:jndi-lookup id="dataSource" jndi-name="java:comp/env/jdbc/petclinic"/>
-	-->
+
+	<jee:jndi-lookup id="dataSource" jndi-name="oracle"/>
 
 	<!-- Database initializer. If any of the script fails, the initialization stops. -->
 	<!-- As an alternative, for embedded databases see <jdbc:embedded-database/>. -->

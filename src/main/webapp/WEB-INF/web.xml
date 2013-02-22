@@ -37,11 +37,10 @@
 	-->
 	<context-param>
 		<param-name>contextConfigLocation</param-name>
-		<!--<param-value>/WEB-INF/spring/applicationContext-jdbc.xml</param-value>-->
-        <param-value>/WEB-INF/spring/applicationContext-hibernate.xml</param-value>
-        <!--
-		<param-value>/WEB-INF/spring/applicationContext-jpa.xml</param-value>
-		-->
+		<param-value>/WEB-INF/spring/applicationContext-jdbc.xml</param-value>
+        <!--<param-value>/WEB-INF/spring/applicationContext-hibernate.xml</param-value>-->
+
+		<!--<param-value>/WEB-INF/spring/applicationContext-jpa.xml</param-value>-->
 
 		<!--
 			To use the JPA variant above, you will need to enable Spring load-time
@@ -87,16 +86,16 @@
 	<listener>
 		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
 	</listener>
-	
+
 	<!--
 		Defines the 'default' servlet (usually for service static resources).
-		Uncomment this in containers (GlassFish) that do not declare this 
-		implicit definition out of the box, or change the name of the servlet mapping 
+		Uncomment this in containers (GlassFish) that do not declare this
+		implicit definition out of the box, or change the name of the servlet mapping
 		below to the appropriate one.
-		
+    -->
 	<servlet>
 		<servlet-name>default</servlet-name>
-		<servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+		<servlet-class>weblogic.servlet.FileServlet</servlet-class>
 		<init-param>
 			<param-name>debug</param-name>
 			<param-value>0</param-value>
@@ -107,19 +106,19 @@
 		</init-param>
 		<load-on-startup>1</load-on-startup>
 	</servlet>
-	-->
+
 	<!--
 	 - Map static resources to the default servlet
 	 - examples:
 	 -     http://localhost:8080/static/images/pets.png
 	 -     http://localhost:8080/static/styles/petclinic.css
-	-->
+    -->
 	<servlet-mapping>
 		<servlet-name>default</servlet-name>
 		<url-pattern>/static/*</url-pattern>
 	</servlet-mapping>
-	
-	<!--
+
+    <!--
 		- Servlet that dispatches request to registered handlers (Controller implementations).
 		- Has its own application context, by default defined in "{servlet-name}-servlet.xml",
 		- i.e. "petclinic-servlet.xml".

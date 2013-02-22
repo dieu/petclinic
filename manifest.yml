@@ -10,28 +10,42 @@ launch:
             default: "dieu"
         - app-branch:
             description: Source control branch
-            default: "HEAD"
+            default: "oracle"
         - app-version:
             description: Version of the build artifacts
             default: "1.0.0-SNAPSHOT"
             enum:
                 "Latest": "1.0.0-SNAPSHOT"
                 "Stable": "1.0.0"
+        - db-user:
+             description: OracleDB user
+             default: "JOHN"
+        - db-password:
+             description: OracleDB user passord
+             default: "123qwe123"
+        - db-sid:
+             description: OracleDB sid
+             default: "DBORA"
+
     steps:
-        - provision-db-tier:
-            action: compute.grow
-            parameters:
-                roleName: db-node
-            output:
-                 db-hosts: ips
- 
         - provision-app-tier:
             action: compute.grow
             parameters:
-                roleName: app-node
+                vmIdentity: root
+                imageId: us-east-1/ami-3aeb7853
                 quantity: ${app-tier-size}
+                roleName: app-node
             output:
                 app-hosts: ips
+
+        - provision-db-tier:
+            action: compute.grow
+            parameters:
+                vmIdentity: root
+                imageId: us-east-1/ami-4ab52723
+                roleName: db-node
+            output:
+                 db-hosts: ips
  
         - provision-lb:
             action: compute.grow
@@ -41,18 +55,33 @@ launch:
                 lb-hosts: ips
  
         - install-database:
-            action: mysql.install
+            action: install
             parameters:
                 phase: install-db
                 roles: [ db-node ]
- 
- 
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[oracledb::dbca]"]
+                jattrs:
+                    oracle:
+                        db:
+                            sid: ${db-sid}
+                            schema: ${db-user}
+                            schema_password: ${db-password}
+
         - install-app:
-            action: tomcat.install
+            action: install
             parameters:
                 phase: install-app
                 roles: [ app-node ]
- 
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[weblogic::wl_create_domain]", "recipe[weblogic::wl_domain_start]"]
+                jattrs:
+                    weblogic:
+                        wl_domain_port: 8080
+                        wl_home: "/opt/oracle/middleware/wlserver_10.3/"
+                        oracle_home: "/opt/oracle/middleware/"
+                        jdk: "/usr/java/latest"
+
         - install-lb:
             action: haproxy.install
             parameters:
@@ -60,41 +89,58 @@ launch:
                 roles: [ lb-node ]
  
         - deploy-database:
-            action: mysql.create-database
+            action: install
             parameters:
                 phase: deploy-db
                 precedingPhases: [ install-db ]
                 roles: [ db-node ]
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[oracledb::dataload]"]
                 jattrs:
-                    database:
-                        name: "petclinic"
-                        schema: "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-mysql-schema.sql"
-                        data:   "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-mysql-dataload.sql"
- 
+                    oracle:
+                        db:
+                            dataload: [
+                                "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/oracle/petclinic-oracle-schema.sql",
+                                "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/oracle/petclinic-oracle-dataload.sql"
+                            ]
+
+
+        - configure-datasource:
+            action: install
+            parameters:
+                phase: configure-datasource
+                precedingPhases: [ install-db, install-app ]
+                roles: [ app-node ]
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[weblogic::wl_create_ds]"]
+                jattrs:
+                    weblogic:
+                        wl_domain_port: 8080
+                        wl_home: "/opt/oracle/middleware/wlserver_10.3/"
+                        oracle_home: "/opt/oracle/middleware/"
+                        ds:
+                            ds_name: "oracle"
+                            jndi_name: "oracle"
+                            db_url: "jdbc:oracle:thin:@{$.db-hosts[0]}:1521:${db-sid}"
+                            oracle_user: ${db-user}
+                            oracle_user_pass: ${db-password}
         - deploy-app:
-            action: war.deploy
+            action: install
             parameters:
                 phase: deploy-app
-                precedingPhases: [ install-app ]
+                precedingPhases: [ configure-datasource, install-app ]
                 roles: [ app-node ]
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[weblogic::wl_deploy_app]"]
                 jattrs:
-                    war:
-                        deploy: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
- 
-        - configure-datasource:
-            action: propfile.configure
-            parameters:
-                phase: configure-app
-                precedingPhases: [ deploy-app, deploy-db ]
-                roles: [ app-node ]
-                jattrs:
-                    configure:
-                        source: "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-database.properties.erb"
-                        to: "classes/jdbc.properties"
-                        variables:
-                            hosts: ${db-hosts}
-                            database: "petclinic"
- 
+                    weblogic:
+                        wl_domain_port: 8080
+                        wl_home: "/opt/oracle/middleware/wlserver_10.3/"
+                        oracle_home: "/opt/oracle/middleware/"
+                        apps_array: [{
+                          name: "PetClinic", path: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
+                        }]
+
         - setup-lb:
             action: haproxy.rebalance
             parameters:
@@ -103,7 +149,7 @@ launch:
                 jattrs:
                     haproxy.rebalance:
                         nodes: ${app-hosts}
- 
+
     return:
         app-url:
             description: Url to the application
@@ -111,7 +157,11 @@ launch:
         haproxy-url:
             description: Url to haproxy stats
             value: http://${lb-hosts}:22002/
- 
+        app-servers:
+            description: IPs for application servers
+            value: ${app-hosts}
+
+
 scale-up:
     parameters:
         - app-count:
@@ -124,14 +174,23 @@ scale-up:
             default: "dieu"
         - app-branch:
             description: Source control branch
-            default: "HEAD"
+            default: "oracle"
         - app-version:
             description: Version of the build artifacts
             default: "1.0.0-SNAPSHOT"
             enum:
                 "Latest": "1.0.0-SNAPSHOT"
                 "Stable": "1.0.0"
- 
+        - db-user:
+             description: OracleDB user
+             default: "JOHN"
+        - db-password:
+             description: OracleDB user passord
+             default: "123qwe123"
+        - db-sid:
+             description: OracleDB sid
+             default: "DBORA"
+
     steps:
         - grow-app-tier:
             action: compute.grow
@@ -140,37 +199,58 @@ scale-up:
                 quantity: ${app-count}
             output:
                 app-hosts: ips
- 
+
+
         - install-app:
-            action: tomcat.install
+            action: install
             parameters:
                 phase: install-app
                 roles: [ app-node ]
- 
-        - deploy-app:
-            action: war.deploy
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[weblogic::wl_create_domain]", "recipe[weblogic::wl_domain_start]"]
+                jattrs:
+                    weblogic:
+                        oracle_home: "/opt/oracle/middleware/"
+                        wl_home: "/opt/oracle/middleware/wlserver_10.3/"
+                        jdk: "/usr/java/latest"
+
+
+        - configure-datasource:
+            action: install
             parameters:
-                phase: deploy-app
+                phase: configure-datasource
                 precedingPhases: [ install-app ]
                 roles: [ app-node ]
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[weblogic::wl_create_ds]"]
                 jattrs:
-                    war:
-                        deploy: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
- 
-        - configure-datasource:
-            action: propfile.configure
+                    weblogic:
+                        wl_domain_port: 8080
+                        wl_home: "/opt/oracle/middleware/wlserver_10.3/"
+                        oracle_home: "/opt/oracle/middleware/"
+                        ds:
+                            ds_name: "oracle"
+                            jndi_name: "oracle"
+                            db_url: "jdbc:oracle:thin:@{$.db-hosts[0]}:1521:${db-sid}"
+                            oracle_user: ${db-user}
+                            oracle_user_pass: ${db-password}
+        - deploy-app:
+            action: install
             parameters:
-                phase: configure-app
-                precedingPhases: [ deploy-app ]
+                phase: deploy-app
+                precedingPhases: [ configure-datasource, install-app ]
                 roles: [ app-node ]
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[weblogic::wl_deploy_app]"]
                 jattrs:
-                    configure:
-                        source: "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-database.properties.erb"
-                        to: "classes/jdbc.properties"
-                        variables:
-                            hosts: ${db-hosts}
-                            database: "petclinic"
- 
+                    weblogic:
+                        wl_domain_port: 8080
+                        wl_home: "/opt/oracle/middleware/wlserver_10.3/"
+                        oracle_home: "/opt/oracle/middleware/"
+                        apps_array: [{
+                          name: "PetClinic", path: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
+                        }]
+
         - update-lb:
             action: haproxy.rebalance
             parameters:
@@ -179,7 +259,7 @@ scale-up:
                 jattrs:
                     haproxy.rebalance:
                         nodes: ${app-hosts}
- 
+
 scale-down:
     parameters:
         - app-count:
@@ -193,7 +273,7 @@ scale-down:
             parameters:
                 roleName: app-node
                 quantity: ${app-count}
- 
+
         - update-lb:
             action: haproxy.rebalance
             parameters:
@@ -202,7 +282,7 @@ scale-down:
                 jattrs:
                     haproxy.rebalance:
                         nodes: ${app-hosts}
- 
+
 update:
     parameters:
         - app-fork:
@@ -210,38 +290,60 @@ update:
             default: "dieu"
         - app-branch:
             description: Source control branch
-            default: "HEAD"
+            default: "oracle"
         - app-version:
             description: Version of the build artifacts
             default: "1.0.0-SNAPSHOT"
             enum:
                 "Latest": "1.0.0-SNAPSHOT"
                 "Stable": "1.0.0"
- 
+        - db-user:
+             description: OracleDB user
+             default: "JOHN"
+        - db-password:
+             description: OracleDB user passord
+             default: "123qwe123"
+        - db-sid:
+             description: OracleDB sid
+             default: "DBORA"
+
     steps:
-        - redeploy-app:
-            action: war.deploy
+        - configure-datasource:
+            action: install
+            parameters:
+                phase: configure-datasource
+                precedingPhases: [ install-app ]
+                roles: [ app-node ]
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[weblogic::wl_create_ds]"]
+                jattrs:
+                    weblogic:
+                        wl_domain_port: 8080
+                        wl_home: "/opt/oracle/middleware/wlserver_10.3/"
+                        oracle_home: "/opt/oracle/middleware/"
+                        ds:
+                            ds_name: "oracle"
+                            jndi_name: "oracle"
+                            db_url: "jdbc:oracle:thin:@{$.db-hosts[0]}:1521:${db-sid}"
+                            oracle_user: ${db-user}
+                            oracle_user_pass: ${db-password}
+        - deploy-app:
+            action: install
             parameters:
                 phase: deploy-app
+                precedingPhases: [ configure-datasource, install-app ]
                 roles: [ app-node ]
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/oracle-0.1.tar.gz"
+                runList: ["recipe[weblogic::wl_deploy_app]"]
                 jattrs:
-                    war:
-                        deploy: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
- 
-        - configure-datasource:
-            action: propfile.configure
-            parameters:
-                phase: configure-app
-                precedingPhases: [ deploy-app ]
-                roles: [ app-node ]
-                jattrs:
-                    configure:
-                        source: "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-database.properties.erb"
-                        to: "classes/jdbc.properties"
-                        variables:
-                            hosts: ${db-hosts}
-                            database: "petclinic"
- 
+                    weblogic:
+                        wl_domain_port: 8080
+                        wl_home: "/opt/oracle/middleware/wlserver_10.3/"
+                        oracle_home: "/opt/oracle/middleware/"
+                        apps_array: [{
+                          name: "PetClinic", path: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
+                        }]
+
 destroy:
     steps:
         - destroy:
