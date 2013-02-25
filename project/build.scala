@@ -12,6 +12,19 @@ object PetclinicBuild extends Build {
 
   lazy val root = project(".")
 
+  val testThreads = 8
+  lazy val integrationTests = project("integration-test")
+    .libraryDependencies(Dependencies.test)
+    .settings(
+      parallelExecution in Test := true,
+      concurrentRestrictions in Test := Seq(
+        Tags.limit(Tags.Test, testThreads),
+        Tags.limit(Tags.CPU, testThreads),
+        Tags.limit(Tags.Compile, testThreads),
+        Tags.limitAll(testThreads),
+        Tags.limitUntagged(testThreads))
+  )
+
   lazy val petclinicSettings = Seq(
     organization := "petclinic",
     version := "0.1",
@@ -70,4 +83,12 @@ object PetclinicBuild extends Build {
       base = file(path),
       settings = commonSettings)
   }
+}
+
+object Dependencies {
+  val test = Seq(
+    "org.scalatest" %% "scalatest" % "2.0.M4" % "test",
+    "org.seleniumhq.selenium" % "selenium-java" % "2.25.0" % "test",
+    "ru.yandex.qatools.htmlelements" % "htmlelements" % "1.8" % "test" from("http://repo.typesafe.com/typesafe/repo/ru/yandex/qatools/htmlelements/htmlelements-java/1.8-SNAPSHOT/htmlelements-java-1.8-20120930.005728-3.jar")
+  )
 }
