@@ -1,10 +1,8 @@
-package petclinic
-
 import sbt._
 import Keys._
-import Reference._
 import sbt.Scoped.RichTaskable2
 import xml.XML
+import net.thucydides.core.reports.html.HtmlAggregateStoryReporter
 
 
 object PetclinicBuild extends Build {
@@ -12,18 +10,24 @@ object PetclinicBuild extends Build {
 
   lazy val root = project(".")
 
+  ThucydidesReporter.dependencyHack
+
   val testThreads = 8
   lazy val integrationTests = project("integration-test")
     .libraryDependencies(Dependencies.test)
     .settings(
       parallelExecution in Test := true,
-      concurrentRestrictions in Test := Seq(
-        Tags.limit(Tags.Test, testThreads),
-        Tags.limit(Tags.CPU, testThreads),
-        Tags.limit(Tags.Compile, testThreads),
-        Tags.limitAll(testThreads),
-        Tags.limitUntagged(testThreads))
-  )
+      concurrentRestrictions in Global := Seq(
+        Tags.limit(Tags.Test, testThreads)))
+    //.settings(ThucydidesReporter.sitePath := target)
+    .settings(ThucydidesReporter.aggregateTask)
+    .settings(ThucydidesReporter.defineSourceDirTask)
+    .settings(test in Test <<= test in Test dependsOn ThucydidesReporter.thucydidesSourceDirectory )
+    .settings(testOnly in Test <<= testOnly in Test dependsOn ThucydidesReporter.thucydidesSourceDirectory )
+    .settings(testQuick in Test <<= testQuick in Test dependsOn ThucydidesReporter.thucydidesSourceDirectory )
+
+    .settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*)
+
 
   lazy val petclinicSettings = Seq(
     organization := "petclinic",
@@ -87,8 +91,13 @@ object PetclinicBuild extends Build {
 
 object Dependencies {
   val test = Seq(
+    //"org.hibernate" % "hibernate-entitymanager" % "3.5.4-Final" exclude("commons-logging", "commons-logging") exclude("org.slf4j","slf4j-api") exclude("commons-collections","commons-collections") exclude("cglib","cglib") exclude("xml-apis","xml-apis"),
     "org.scalatest" %% "scalatest" % "2.0.M4" % "test",
-    "org.seleniumhq.selenium" % "selenium-java" % "2.25.0" % "test",
-    "ru.yandex.qatools.htmlelements" % "htmlelements" % "1.8" % "test" from("http://repo.typesafe.com/typesafe/repo/ru/yandex/qatools/htmlelements/htmlelements-java/1.8-SNAPSHOT/htmlelements-java-1.8-20120930.005728-3.jar")
+    "org.seleniumhq.selenium" % "selenium-java" % "2.30.0" % "test",
+    //"ru.yandex.qatools.htmlelements" % "htmlelements" % "1.8" % "test" from("http://repo.typesafe.com/typesafe/repo/ru/yandex/qatools/htmlelements/htmlelements-java/1.8-SNAPSHOT/htmlelements-java-1.8-20120930.005728-3.jar"),
+    "ru.yandex.qatools.htmlelements"% "htmlelements-java" % "1.9" % "test", //uses old selenium-java
+    "com.google.code.findbugs" % "jsr305" % "1.3.+" % "test", //somehow required for 2.x selenium, in scala should be referenced explicitly
+    "net.thucydides" % "thucydides-junit" % "0.9.98" % "test",
+    "com.novocode" % "junit-interface" % "0.10-M1" % "test"
   )
 }
