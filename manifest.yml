@@ -26,6 +26,9 @@ launch:
         - db-sid:
              description: OracleDB sid
              default: "DBORA"
+        - artifact-bucket:
+             description: S3 bucket
+             default: petclinic
 
     steps:
         - provision-app-tier:
@@ -138,7 +141,7 @@ launch:
                         wl_home: "/opt/oracle/middleware/wlserver_10.3/"
                         oracle_home: "/opt/oracle/middleware/"
                         apps_array: [{
-                          name: "PetClinic", path: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
+                          name: "PetClinic", path: "https://s3.amazonaws.com/${artifact-bucket}/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
                         }]
 
         - setup-lb:
@@ -190,6 +193,9 @@ scale-up:
         - db-sid:
              description: OracleDB sid
              default: "DBORA"
+        - artifact-bucket:
+             description: S3 bucket
+             default: petclinic
 
     steps:
         - grow-app-tier:
@@ -251,7 +257,7 @@ scale-up:
                         wl_home: "/opt/oracle/middleware/wlserver_10.3/"
                         oracle_home: "/opt/oracle/middleware/"
                         apps_array: [{
-                          name: "PetClinic", path: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
+                          name: "PetClinic", path: "https://s3.amazonaws.com/${artifact-bucket}/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
                         }]
 
         - update-lb:
@@ -309,6 +315,9 @@ update:
         - db-sid:
              description: OracleDB sid
              default: "DBORA"
+        - artifact-bucket:
+             description: S3 bucket
+             default: petclinic
 
     steps:
         - configure-datasource:
@@ -344,7 +353,7 @@ update:
                         wl_home: "/opt/oracle/middleware/wlserver_10.3/"
                         oracle_home: "/opt/oracle/middleware/"
                         apps_array: [{
-                          name: "PetClinic", path: "https://s3.amazonaws.com/undeploy-petstore/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
+                          name: "PetClinic", path: "https://s3.amazonaws.com/${artifact-bucket}/${app-fork}/origin/${app-branch}/petclinic-${app-version}.war"
                         }]
 
 destroy:
