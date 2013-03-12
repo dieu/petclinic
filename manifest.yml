@@ -42,28 +42,28 @@ launch:
  
         - install-database:
             action: mysql.install
+            phase: install-db
             parameters:
-                phase: install-db
                 roles: [ db-node ]
  
  
         - install-app:
             action: tomcat.install
+            phase: install-app
             parameters:
-                phase: install-app
                 roles: [ app-node ]
  
         - install-lb:
             action: haproxy.install
+            phase: install-lb
             parameters:
-                phase: install-lb
                 roles: [ lb-node ]
  
         - deploy-database:
             action: mysql.create-database
+            phase: deploy-db
+            precedingPhases: [ install-db ]
             parameters:
-                phase: deploy-db
-                precedingPhases: [ install-db ]
                 roles: [ db-node ]
                 jattrs:
                     database:
@@ -73,9 +73,9 @@ launch:
  
         - deploy-app:
             action: war.deploy
+            phase: deploy-app
+            precedingPhases: [ install-app ]
             parameters:
-                phase: deploy-app
-                precedingPhases: [ install-app ]
                 roles: [ app-node ]
                 jattrs:
                     war:
@@ -83,9 +83,9 @@ launch:
  
         - configure-datasource:
             action: propfile.configure
+            phase: configure-app
+            precedingPhases: [ deploy-app, deploy-db ]
             parameters:
-                phase: configure-app
-                precedingPhases: [ deploy-app, deploy-db ]
                 roles: [ app-node ]
                 jattrs:
                     configure:
@@ -97,8 +97,8 @@ launch:
  
         - setup-lb:
             action: haproxy.rebalance
+            precedingPhases: [ deploy-app ]
             parameters:
-                precedingPhases: [ deploy-app ]
                 roles: [ lb-node ]
                 jattrs:
                     haproxy.rebalance:
@@ -143,15 +143,15 @@ scale-up:
  
         - install-app:
             action: tomcat.install
+            phase: install-app
             parameters:
-                phase: install-app
                 roles: [ app-node ]
  
         - deploy-app:
             action: war.deploy
+            phase: deploy-app
+            precedingPhases: [ install-app ]
             parameters:
-                phase: deploy-app
-                precedingPhases: [ install-app ]
                 roles: [ app-node ]
                 jattrs:
                     war:
@@ -159,9 +159,9 @@ scale-up:
  
         - configure-datasource:
             action: propfile.configure
+            phase: configure-app
+            precedingPhases: [ deploy-app ]
             parameters:
-                phase: configure-app
-                precedingPhases: [ deploy-app ]
                 roles: [ app-node ]
                 jattrs:
                     configure:
@@ -173,8 +173,8 @@ scale-up:
  
         - update-lb:
             action: haproxy.rebalance
+            precedingPhases: [ deploy-app ]
             parameters:
-                precedingPhases: [ deploy-app ]
                 roles: [ lb-node ]
                 jattrs:
                     haproxy.rebalance:
@@ -196,8 +196,8 @@ scale-down:
  
         - update-lb:
             action: haproxy.rebalance
+            precedingPhases: [ destroy ]
             parameters:
-                precedingPhases: [ destroy ]
                 roles: [ lb-node ]
                 jattrs:
                     haproxy.rebalance:
@@ -221,8 +221,8 @@ update:
     steps:
         - redeploy-app:
             action: war.deploy
+            phase: deploy-app
             parameters:
-                phase: deploy-app
                 roles: [ app-node ]
                 jattrs:
                     war:
@@ -230,9 +230,9 @@ update:
  
         - configure-datasource:
             action: propfile.configure
+            phase: configure-app
+            precedingPhases: [ deploy-app ]
             parameters:
-                phase: configure-app
-                precedingPhases: [ deploy-app ]
                 roles: [ app-node ]
                 jattrs:
                     configure:
