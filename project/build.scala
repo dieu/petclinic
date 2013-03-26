@@ -32,7 +32,7 @@ object PetclinicBuild extends Build {
   lazy val petclinicSettings = Seq(
     organization := "petclinic",
     version := "0.1",
-    scalaVersion := "2.9.2",
+    scalaVersion := "2.10.0",
 
     scalacOptions := Seq("-deprecation", "-unchecked", "-explaintypes"),
 
@@ -48,7 +48,7 @@ object PetclinicBuild extends Build {
   lazy val testSettings = Seq(Test, IntegrationTest).flatMap {
     scope => Seq(
       parallelExecution in scope := false,
-      testOptions in scope <+= target.map { t => Tests.Argument(TestFrameworks.ScalaTest, "stdout(config=\"durations\")") }, //, "junitxml(directory=\"%s\")" format (t / "test-reports"), native listener ignores skipped tests in junitoutput.
+      testOptions in scope <+= target.map { t => Tests.Argument(TestFrameworks.ScalaTest, "stdout(config=\"durations\")") }, //, "junitxml(directory=\"%s\")" format (t / "test-reports"), native listener ignores skipped tests in
       testListeners <<= junitListeners
     ) //Will make sure that parallelExecution is off for jacoco during test execution. (see: http://ronalleva.com/2012/04/25/jacoco-and-play.html)
   }
@@ -92,7 +92,7 @@ object PetclinicBuild extends Build {
 object Dependencies {
   val test = Seq(
     //"org.hibernate" % "hibernate-entitymanager" % "3.5.4-Final" exclude("commons-logging", "commons-logging") exclude("org.slf4j","slf4j-api") exclude("commons-collections","commons-collections") exclude("cglib","cglib") exclude("xml-apis","xml-apis"),
-    "org.scalatest" %% "scalatest" % "2.0.M5" % "test",
+    "org.scalatest" %% "scalatest" % "2.0.M6-SNAP9" % "test",
     "org.seleniumhq.selenium" % "selenium-java" % "2.31.0" % "test",
     //"ru.yandex.qatools.htmlelements" % "htmlelements" % "1.8" % "test" from("http://repo.typesafe.com/typesafe/repo/ru/yandex/qatools/htmlelements/htmlelements-java/1.8-SNAPSHOT/htmlelements-java-1.8-20120930.005728-3.jar"),
     "ru.yandex.qatools.htmlelements"% "htmlelements-java" % "1.9" % "test", //uses old selenium-java
