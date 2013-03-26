@@ -2,13 +2,15 @@ package tests.steps
 
 import net.thucydides.core.pages.Pages
 import net.thucydides.core.steps.ScenarioSteps
-import net.thucydides.core.annotations.Step
+import net.thucydides.core.annotations.{Issue, Step}
 import tests.pages._
+import org.junit.Assert._
+import org.hamcrest.CoreMatchers._
 
 /**
  * User: Dmytro Makhno
  */
-class PetOwnerSteps(pages:Pages) extends ScenarioSteps(pages) {
+class PetOwnerStepsEx(pages:Pages) extends PetOwnerSteps(pages) {
   @Step
   def goes_start {
     val page = getPages.currentPageAt(classOf[HomePage])
@@ -43,5 +45,11 @@ class PetOwnerSteps(pages:Pages) extends ScenarioSteps(pages) {
   def goes_home {
     val page = getPages.currentPageAt(classOf[GeneralFooterPage])
     page.toHome
+  }
+
+  @Step
+  def verify_title {
+    val page = getPages.currentPageAt(classOf[HomePage])
+    assertThat(page.greeting.getText.trim, is("Welcome"))
   }
 }

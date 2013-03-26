@@ -18,6 +18,9 @@ class HomePage(driver:WebDriver) extends PageObject(driver) with Footer{
   @FindBy(xpath="//a[text()='Tutorial']")
   var tutorialLink:WebElement = _
 
+  @FindBy(css="div h2")
+  var greeting:WebElement = _
+
   def toFindOwner {
     findOwnerLink.click()
   }

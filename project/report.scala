@@ -20,7 +20,7 @@ object ThucydidesReporter extends Logging{
   val outputPrefix = "/site"
   val sourcePrefix = outputPrefix //somehow it should be equal to output
 
-  val thucydidesPlugin = new ThucydidesPlugin
+  val thucydidesPlugin = new ThucydidesManager
 
   //Todo: Refactor as task that introduce source dir on return
   val defineSourceDirTask = thucydidesSourceDirectory <<= target map {(targetDir:File) =>
@@ -65,7 +65,34 @@ object ThucydidesReporter extends Logging{
   }
 }
 
-class ThucydidesPlugin {
+/*class ThucydidesPlugin {
+  val aggregatedReport = TaskKey[Unit]("attd", "Generate an aggregated html story report.")
+  val thucydidesSourceDirectory = TaskKey[Unit]("attd-prepare", "Prepares source dir, where all raw outcomes will be put.")
+  val thucydidesSettings = Seq (
+    aggregateTask,
+    defineSourceDirTask,
+    test <<= test dependsOn thucydidesSourceDirectory,
+    testOnly <<= testOnly dependsOn thucydidesSourceDirectory,
+    testQuick <<= testQuick dependsOn thucydidesSourceDirectory,
+    aggregatedReport <<= aggregatedReport dependsOn thucydidesSourceDirectory,
+    fork in aggregateTask := true
+  )
+
+  //Todo: Refactor as task that introduce source dir on return
+  val defineSourceDirTask = thucydidesSourceDirectory <<= target map {(targetDir:File) =>
+    thucydidesPlugin.setDefaultSourceDirectory(targetDir.getPath+sourcePrefix)
+    logger.info("Thucydides Sources are going to be put here: "+targetDir.getPath+sourcePrefix)
+  }
+  val aggregateTask = aggregatedReport <<= target map {(targetDir:File) => {
+    //check with forkin
+    Thread.currentThread().setContextClassLoader(classOf[ThucydidesModule].getClassLoader) //magic string that resolves location of persistence.xml
+
+    System.setProperty("thucydides.project.key", "Petclinic-Project")
+    thucydidesPlugin.generate //(outputDir,targetDir.getPath+sourcePrefix)
+  }}
+} */
+
+class ThucydidesManager {
   val thucydidesProperties = new ThucydidesSystemProperties
   import thucydidesProperties._
   import ThucydidesSystemProperty._

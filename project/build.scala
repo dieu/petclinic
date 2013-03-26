@@ -92,12 +92,14 @@ object PetclinicBuild extends Build {
 object Dependencies {
   val test = Seq(
     //"org.hibernate" % "hibernate-entitymanager" % "3.5.4-Final" exclude("commons-logging", "commons-logging") exclude("org.slf4j","slf4j-api") exclude("commons-collections","commons-collections") exclude("cglib","cglib") exclude("xml-apis","xml-apis"),
-    "org.scalatest" %% "scalatest" % "2.0.M4" % "test",
-    "org.seleniumhq.selenium" % "selenium-java" % "2.30.0" % "test",
+    "org.scalatest" %% "scalatest" % "2.0.M5" % "test",
+    "org.seleniumhq.selenium" % "selenium-java" % "2.31.0" % "test",
     //"ru.yandex.qatools.htmlelements" % "htmlelements" % "1.8" % "test" from("http://repo.typesafe.com/typesafe/repo/ru/yandex/qatools/htmlelements/htmlelements-java/1.8-SNAPSHOT/htmlelements-java-1.8-20120930.005728-3.jar"),
     "ru.yandex.qatools.htmlelements"% "htmlelements-java" % "1.9" % "test", //uses old selenium-java
     "com.google.code.findbugs" % "jsr305" % "1.3.+" % "test", //somehow required for 2.x selenium, in scala should be referenced explicitly
     "net.thucydides" % "thucydides-junit" % "0.9.98" % "test",
-    "com.novocode" % "junit-interface" % "0.10-M1" % "test"
+    "com.novocode" % "junit-interface" % "0.10-M1" % "test",
+    "org.joda" % "joda-convert" % "1.2" % "test",
+    "com.weiglewilczek.slf4s" % "slf4s_2.9.1" % "1.0.7" % "test"
   )
 }
