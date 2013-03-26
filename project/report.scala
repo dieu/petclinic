@@ -14,8 +14,9 @@ import sbt.TaskKey
 
 object ThucydidesReporter extends Logging{
 
-  val aggregatedReport = TaskKey[Unit]("attd", "Generate an aggregated html story report.")
-  val thucydidesSourceDirectory = TaskKey[Unit]("attd-prepare", "Prepares source dir, where all raw outcomes will be put.")
+  val aggregatedReport = TaskKey[Unit]("thucydides", "Generate an aggregated html story report.")
+  val thucydidesSourceDirectory = TaskKey[Unit]("thucydides-prepare", "Prepares source dir, where all raw outcomes will be put.")
+  val testAll = TaskKey[Unit]("test-all", "Tests and generate report.")
 
   val outputPrefix = "/site"
   val sourcePrefix = outputPrefix //somehow it should be equal to output
@@ -25,7 +26,7 @@ object ThucydidesReporter extends Logging{
   //Todo: Refactor as task that introduce source dir on return
   val defineSourceDirTask = thucydidesSourceDirectory <<= target map {(targetDir:File) =>
     thucydidesPlugin.setDefaultSourceDirectory(targetDir.getPath+sourcePrefix)
-    logger.info("Thucydides Sources are going to be put here: "+targetDir.getPath+sourcePrefix)
+    logger.info("Thucydides Sources are going to be put here: "+thucydidesPlugin.outputDirectoryPath)
   }
 
   val aggregateTask = aggregatedReport <<= target map {(targetDir:File) => {
@@ -39,8 +40,24 @@ object ThucydidesReporter extends Logging{
 
     System.setProperty("thucydides.project.key", "Petclinic-Project")
     thucydidesPlugin.generate //(outputDir,targetDir.getPath+sourcePrefix)
+    logger.info("Report is generated see here: "+thucydidesPlugin.outputDirectoryPath)
   }}
-  aggregatedReport <<= aggregatedReport dependsOn thucydidesSourceDirectory
+
+
+  val thucydidesSettings = Seq (
+    aggregateTask,
+    defineSourceDirTask,
+    test in Test <<= test in Test dependsOn thucydidesSourceDirectory,
+    testOnly in Test <<= testOnly in Test dependsOn thucydidesSourceDirectory,
+    testQuick in Test <<= testQuick in Test dependsOn thucydidesSourceDirectory,
+    aggregatedReport <<= aggregatedReport dependsOn thucydidesSourceDirectory,
+    //test in Test <<= (test in Test, aggregatedReport in Test) map ((a,b) => {logger.info("test+report is done")})
+    testAll in Test <<= aggregatedReport dependsOn (test in Test)
+
+    //fork in aggregateTask := true
+  )
+
+
 
   /*
   Very rude delete of .jar incorporated with sbt, due to later version exists in class path.
@@ -119,10 +136,12 @@ class ThucydidesManager {
 
   val reporter = new HtmlAggregateStoryReporter(projectKey)
 
+
+  lazy val outputDirectoryPath = getValue(OUTPUT_DIRECTORY)
   /*
   Sets output directory, this is required before test run, to allow thucydides make screenshots and outcomes to proper folder.
    */
-  def setSourceDirectory(outputPath:String) {
+  private def setSourceDirectory(outputPath:String) {
     val outputDirectory:File = new File(outputPath)
     setValue(OUTPUT_DIRECTORY,outputPath)
 
@@ -137,8 +156,8 @@ class ThucydidesManager {
 
   def generate {//(outputPath:String, sourcePath:String) {
     //setSourceDirectory(sourcePath)
-    val outputDirectory:File = new File(getValue(OUTPUT_DIRECTORY))
-    val sourceDirectory:File = new File(getValue(OUTPUT_DIRECTORY))
+    val outputDirectory:File = new File(outputDirectoryPath)
+    val sourceDirectory:File = new File(outputDirectoryPath)
 
     try {
       generateHtmlStoryReports(outputDirectory, sourceDirectory)

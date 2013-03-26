@@ -20,12 +20,7 @@ object PetclinicBuild extends Build {
       concurrentRestrictions in Global := Seq(
         Tags.limit(Tags.Test, testThreads)))
     //.settings(ThucydidesReporter.sitePath := target)
-    .settings(ThucydidesReporter.aggregateTask)
-    .settings(ThucydidesReporter.defineSourceDirTask)
-    .settings(test in Test <<= test in Test dependsOn ThucydidesReporter.thucydidesSourceDirectory )
-    .settings(testOnly in Test <<= testOnly in Test dependsOn ThucydidesReporter.thucydidesSourceDirectory )
-    .settings(testQuick in Test <<= testQuick in Test dependsOn ThucydidesReporter.thucydidesSourceDirectory )
-
+    .settings(ThucydidesReporter.thucydidesSettings: _*)
     .settings(net.virtualvoid.sbt.graph.Plugin.graphSettings: _*)
 
 
