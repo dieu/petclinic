@@ -43,19 +43,8 @@ object PetclinicBuild extends Build {
   lazy val testSettings = Seq(Test, IntegrationTest).flatMap {
     scope => Seq(
       parallelExecution in scope := false,
-      testOptions in scope <+= target.map { t => Tests.Argument(TestFrameworks.ScalaTest, "stdout(config=\"durations\")") }, //, "junitxml(directory=\"%s\")" format (t / "test-reports"), native listener ignores skipped tests in
-      testListeners <<= junitListeners
-    ) //Will make sure that parallelExecution is off for jacoco during test execution. (see: http://ronalleva.com/2012/04/25/jacoco-and-play.html)
-  }
-  /**
-   * @note Issue reported: https://play.lighthouseapp.com/projects/82401-play-20/tickets/619-junitxmltestlistener-works-only-for-testnameendswithtest
-   */
-  lazy val junitListeners:RichTaskable2[File, Keys.TaskStreams]#App[Seq[TestReportListener]] = (target, streams).map((t, s) => Seq(new eu.henkelmann.sbt.JUnitXmlTestsListener(t.getAbsolutePath, s.log) {
-    override def endGroup(name: String, result: TestResult.Value) = {
-      XML.save(new File(targetDir, testSuite.name.split('.').takeRight(1).mkString + ".xml").getAbsolutePath, testSuite.stop(), "UTF-8", true, null)
-    }
-  }
-  ))
+      testOptions in scope <+= target.map { t => Tests.Argument(TestFrameworks.ScalaTest, "stdout(config=\"durations\")", "junitxml(directory=\"%s\")" format (t / "test-reports")) }
+    )}
 
   lazy val ideaPluginSettings =  {
     org.sbtidea.SbtIdeaPlugin.ideaSettings ++
@@ -93,7 +82,7 @@ object Dependencies {
     "ru.yandex.qatools.htmlelements"% "htmlelements-java" % "1.9" % "test", //uses old selenium-java
     "com.google.code.findbugs" % "jsr305" % "1.3.+" % "test", //somehow required for 2.x selenium, in scala should be referenced explicitly
     "net.thucydides" % "thucydides-junit" % "0.9.98" % "test",
-    "com.novocode" % "junit-interface" % "0.10-M1" % "test",
+    //"com.novocode" % "junit-interface" % "0.10-M1" % "test",
     "org.joda" % "joda-convert" % "1.2" % "test",
     "com.weiglewilczek.slf4s" % "slf4s_2.9.1" % "1.0.7" % "test"
   )

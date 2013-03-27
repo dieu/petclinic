@@ -1,5 +1,6 @@
 package tests.stories;
 
+import org.scalatest.junit.JUnitSuite;
 import tests.PetClinicApplication;
 import tests.steps.PetOwnerSteps;
 import net.thucydides.core.annotations.*;
@@ -19,7 +20,7 @@ import static org.hamcrest.Matchers.startsWith;
  */
 @RunWith(ThucydidesRunner.class)
 @Story(PetClinicApplication.PetOwnerManagement.ViewInformationPertainingToPetOwner.class)
-public class ViewInformationPertainingToPetOwnerTest {
+public class ViewInformationPertainingToPetOwnerTest extends JUnitSuite {
     @Managed
     public WebDriver webDriver;
 

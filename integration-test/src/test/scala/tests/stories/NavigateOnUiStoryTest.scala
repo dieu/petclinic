@@ -9,6 +9,7 @@ import tests.{ThucydidesSuite, PetClinic}
 import org.junit.Test
 import tests.steps.PetOwnerStepsEx
 import org.scalatest._
+import junit.JUnitSuite
 import org.junit.runner.notification.RunNotifier
 import org.junit.runners.model.{Statement, FrameworkMethod}
 
@@ -17,7 +18,7 @@ import org.junit.runners.model.{Statement, FrameworkMethod}
  */
 @RunWith(classOf[ThucydidesRunner])
 @Story(classOf[PetClinic#Navigation#PetOwner])
-class NavigateOnUiStoryTest{ //todo: find how to insert scalaTest extends JUnitSuite{
+class NavigateOnUiStoryTest extends JUnitSuite{
   @Managed var webdriver:WebDriver = _
 
   @ManagedPages var pages: Pages = _
