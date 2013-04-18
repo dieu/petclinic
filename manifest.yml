@@ -44,7 +44,7 @@ launch:
 
         - lb-install:
             action: "chefrun"
-            precedingPhases: [ provision ]
+            precedingPhases: [ deploy-db ]
             phase: install-lb
             parameters:
               roles: [ lb-node ]
@@ -54,7 +54,7 @@ launch:
 
         - app:
             action: .install.app
-            precedingPhases: [ provision ]
+            precedingPhases: [ install-lb ]
             phase: deploy-app
             parameters:
               db-hosts: ${db-hosts}
@@ -216,6 +216,11 @@ destroy:
           runList: ["recipe[mysql::server]"]
           isSolo: true
           recipeUrl: "https://github.com/cometera/cookbooks/raw/0.1/cookbooks.tar.gz"
+          jattrs:
+              mysql:
+                server_root_password: e653e94ee8d064ec95ef5a1381c87a23
+                server_repl_password: e653e94ee8d064ec95ef5a1381c87a23
+                server_debian_password: e653e94ee8d064ec95ef5a1381c87a23
 
     - deploy-database:
         action: "chefrun"
