@@ -35,7 +35,7 @@ launch:
             action: compute.grow
             parameters:
                 vmIdentity: root
-                imageId: us-east-1/ami-3aeb7853
+                imageId: us-east-1/ami-00b52d69
                 quantity: ${app-tier-size}
                 roleName: app-node
             output:
@@ -202,7 +202,7 @@ scale-up:
             action: compute.grow
             parameters:
                 vmIdentity: root
-                imageId: us-east-1/ami-3aeb7853
+                imageId: us-east-1/ami-00b52d69
                 quantity: ${app-count}
                 roleName: app-node
             output:
