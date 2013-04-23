@@ -28,7 +28,7 @@ launch:
              default: "DBORA"
         - artifact-bucket:
              description: S3 bucket
-             default: petclinic
+             default: undeploy-petstore
 
     steps:
         - provision-app-tier:
@@ -195,7 +195,7 @@ scale-up:
              default: "DBORA"
         - artifact-bucket:
              description: S3 bucket
-             default: petclinic
+             default: undeploy-petstore
 
     steps:
         - grow-app-tier:
@@ -317,7 +317,7 @@ update:
              default: "DBORA"
         - artifact-bucket:
              description: S3 bucket
-             default: petclinic
+             default: undeploy-petstore
 
     steps:
         - configure-datasource:
