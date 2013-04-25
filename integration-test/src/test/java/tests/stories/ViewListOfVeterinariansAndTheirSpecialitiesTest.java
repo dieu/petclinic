@@ -1,6 +1,5 @@
 package tests.stories;
 
-import org.scalatest.junit.JUnitSuite;
 import tests.PetClinicApplication;
 import tests.steps.PetOwnerSteps;
 import net.thucydides.core.annotations.*;
@@ -16,7 +15,7 @@ import org.openqa.selenium.WebDriver;
  */
 @RunWith(ThucydidesRunner.class)
 @Story(PetClinicApplication.VeterinarianVisits.ViewListOfVeterinariansAndTheirSpecialities.class)
-public class ViewListOfVeterinariansAndTheirSpecialitiesTest extends JUnitSuite {
+public class ViewListOfVeterinariansAndTheirSpecialitiesTest {
     @Managed
     public WebDriver webDriver;
 
