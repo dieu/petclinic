@@ -14,7 +14,7 @@ import static net.thucydides.core.pages.components.HtmlTable.inTable;
  * @version 1.0
  */
 @DefaultUrl("/owners")
-public class PetOwnersPage extends PageObject {
+public class PetOwnersPage extends Footer {
     @FindBy(tagName = "table")
     private WebElement ownersTable;
 

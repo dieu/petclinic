@@ -10,12 +10,18 @@ import org.openqa.selenium.support.FindBy;
  * @author Alimenkou Mikalai
  * @version 1.0
  */
-public class MainPage extends PageObject {
+public class MainPage extends Footer {
     @FindBy(linkText = "Find owner")
     private WebElement findOwnerLink;
 
     @FindBy(linkText = "Display all veterinarians")
     private WebElement allVeterinariansLink;
+
+    @FindBy(linkText = "Tutorial")
+    private WebElement tutorialLink;
+
+    @FindBy(css = "div h2")
+    private WebElement greeting;
 
     public MainPage(final WebDriver driver) {
         super(driver);
@@ -29,5 +35,14 @@ public class MainPage extends PageObject {
     public void openPetOwnersSearchPage() {
         clickOn(findOwnerLink);
         waitForAllTextToAppear("Find Owners:");
+    }
+
+    public void openTutorialPage() {
+        clickOn(tutorialLink);
+        waitForAllTextToAppear("Introduction");
+    }
+
+    public boolean isGreetingSameWith(String text) {
+        return greeting.getText().trim().equals(text);
     }
 }

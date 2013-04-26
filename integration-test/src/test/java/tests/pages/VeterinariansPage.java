@@ -16,7 +16,7 @@ import static net.thucydides.core.pages.components.HtmlTable.rowsFrom;
  * @version 1.0
  */
 @DefaultUrl("/vets")
-public class VeterinariansPage extends PageObject {
+public class VeterinariansPage extends Footer {
     @FindBy(tagName = "table")
     private WebElement veterinariesTable;
 

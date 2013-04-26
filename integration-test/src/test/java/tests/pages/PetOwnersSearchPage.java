@@ -11,7 +11,7 @@ import org.openqa.selenium.support.FindBy;
  * @version 1.0
  */
 @DefaultUrl("/owners/search")
-public class PetOwnersSearchPage extends PageObject {
+public class PetOwnersSearchPage extends Footer {
     @FindBy(id = "lastName")
     private WebElement lastNameTextField;
 
@@ -29,5 +29,10 @@ public class PetOwnersSearchPage extends PageObject {
         enter(ownerLastName).into(lastNameTextField);
         clickOn(searchOwnersButton);
         waitForTextToDisappear("Find Owners:");
+    }
+
+    public void openAddOwnerPage() {
+        clickOn(addOwnerLink);
+        waitForAllTextToAppear("New Owner:");
     }
 }

@@ -1,9 +1,6 @@
 package tests.steps;
 
-import tests.pages.MainPage;
-import tests.pages.PetOwnersPage;
-import tests.pages.PetOwnersSearchPage;
-import tests.pages.VeterinariansPage;
+import tests.pages.*;
 import net.thucydides.core.annotations.Step;
 import net.thucydides.core.matchers.BeanMatcher;
 import net.thucydides.core.pages.Pages;
@@ -17,6 +14,7 @@ import static org.junit.Assert.assertTrue;
  * @version 1.0
  */
 public class PetOwnerSteps extends ScenarioSteps {
+
     public PetOwnerSteps(final Pages pages) {
         super(pages);
     }
@@ -53,5 +51,20 @@ public class PetOwnerSteps extends ScenarioSteps {
         MainPage mainPage = pages().get(MainPage.class);
         mainPage.open();
         return mainPage;
+    }
+
+    @Step
+    public void openTutorialPage() {
+        onMainPage().openTutorialPage();
+    }
+
+    @Step
+    public void openHomePage() {
+        pages().currentPageAt(Footer.class).openHomePage();
+    }
+
+    @Step
+    public void verifyTitle() {
+        assertTrue(onMainPage().isGreetingSameWith("Welcome"));
     }
 }
