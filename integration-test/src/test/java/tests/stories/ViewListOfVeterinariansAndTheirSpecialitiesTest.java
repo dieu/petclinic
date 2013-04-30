@@ -27,7 +27,7 @@ public class ViewListOfVeterinariansAndTheirSpecialitiesTest {
         steps.shouldBeListOfPredefinedVeterinarians(6);
     }
 
-//    @Test
-//    @Pending
-//    public void listOfVeterinariansIsAvailableInXmlFormat() {}
+    @Test
+    @Pending
+    public void listOfVeterinariansIsAvailableInXmlFormat() {}
 }
