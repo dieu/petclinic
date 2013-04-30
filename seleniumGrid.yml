@@ -1,0 +1,90 @@
+#This manifest is a simple setup of selenium grid
+
+launch:
+    parameters:
+        - selenium-version:
+            default: "2.32.0"
+            description: Selenium Version
+    steps:
+        - provision-hubnode:
+            action: compute.grow
+            parameters:
+                roleName: hub-node
+            output:
+                hub-host: ips
+        - init-hubnode:
+            action: "chefrun"
+            parameters:
+                phase: "deployhub"
+                precedingPhases: ["provision"]
+                roles: [hub-node]
+                # add "recipe[selenium::chrome]", if you'll need chrome
+                runList: ["recipe[selenium::firefox]", "recipe[selenium::chrome]", "recipe[selenium::grid_hub]", "recipe[selenium::grid_node]" ]
+                isSolo: true
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/gridcookbook-v0.0.3.tar.gz"
+                jattrs:
+                    selenium:
+                        server:
+                            cleanUpCycle: 20000
+                            timeout: 120000
+                            version: "{$.selenium-version}"
+                        node:
+                            hubhost: ${hub-host}
+    return:
+        grid-console:
+            description: Url to grid console
+            value: http://${hub-host}:4444/grid/console
+        grid-console-beta:
+            description: Url to grid console
+            value: http://${hub-host}:4444/grid/beta/console
+        selenium-grid-host:
+            description: Hub host, convinient for integration
+            value: ${hub-host}:4444
+scale-up:
+    parameters:
+        - node-count:
+            description: Additional nodes in grid
+            default: 1
+            min: 1
+            max: 20
+    steps:
+        - provision-nodes:
+            action: compute.grow
+            parameters:
+                roleName: node
+                quantity: ${node-count}
+        - init-node:
+            action: "chefrun"
+            parameters:
+                phase: "deploynode"
+                precedingPhases: ["provision"]
+                roles: [node]
+                # add "recipe[selenium::chrome]", if you'll need chrome
+                runList: ["recipe[selenium::firefox]", "recipe[selenium::chrome]", "recipe[selenium::grid_node]" ]
+                isSolo: true
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/gridcookbook-v0.0.3.tar.gz"
+                jattrs:
+                    selenium:
+                        server:
+                            version: "{$.selenium-version}"
+                        node:
+                            hubhost: ${hub-host}
+
+scale-down:
+    parameters:
+        - node-count:
+            description: Excluded nodes from grid
+            default: 1
+            min: 1
+            max: 20
+    steps:
+        - shrink-nodes:
+            action: compute.shrink
+            parameters:
+                roleName: node
+                quantity: ${node-count}
+
+destroy:
+    steps:
+        - destroy:
+            action: compute.shrink-all
