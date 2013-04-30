@@ -5,10 +5,10 @@ launch:
             default: 1
             min: 1
             max: 20
-        - app-fork:
+        - app-fork: &app-fork
             description: Source control fork
             default: "dieu"
-        - app-branch:
+        - app-branch: &app-branch
             description: Source control branch
             default: "HEAD"
     steps:
@@ -69,12 +69,15 @@ launch:
         app-hosts:
             description: Application IP address
             value: ${app-hosts}
+        lb-hosts:
+            description: Loab Balancer IP address
+            value: ${lb-hosts}
         app-url:
             description: Url to the application
-            value: http://${lb-hosts}
+            value: "http://{$.lb-tier~hosts[0]}"
         haproxy-url:
             description: Url to haproxy stats
-            value: http://${lb-hosts}:22002/
+            value: "http://{$.lb-tier~hosts[0]}:22002/"
 
 scale-up:
     parameters:
@@ -83,12 +86,8 @@ scale-up:
             default: 1
             min: 1
             max: 20
-        - app-fork:
-            description: Source control fork
-            default: "dieu"
-        - app-branch:
-            description: Source control branch
-            default: "HEAD"
+        - app-fork: *app-fork
+        - app-branch: *app-branch
 
     steps:
         - app-tier:
@@ -144,12 +143,8 @@ scale-down:
 
 update:
     parameters:
-        - app-fork:
-            description: Source control fork
-            default: "dieu"
-        - app-branch:
-            description: Source control branch
-            default: "HEAD"
+        - app-fork: *app-fork
+        - app-branch: *app-branch
 
     steps:
         - update-app:
@@ -203,10 +198,8 @@ destroy:
 
 .deploy.db:
   parameters:
-    - app-fork:
-        description: Application fork name
-    - app-branch:
-        description: Application branch name
+    - app-fork: *app-fork
+    - app-branch: *app-branch
   steps:
     - install-database:
         action: "chefrun"
@@ -241,10 +234,8 @@ destroy:
   parameters:
     - db-hosts:
         description: Database IP address
-    - app-fork:
-        description: Application fork name
-    - app-branch:
-        description: Application branch name
+    - app-fork: *app-fork
+    - app-branch: *app-branch
   steps:
     - deploy-app:
         action: "chefrun"
@@ -300,10 +291,8 @@ destroy:
         description: Database IP address
     - app-hosts:
         description: Application IP address
-    - app-fork:
-        description: Application fork name
-    - app-branch:
-        description: Application branch name
+    - app-fork: *app-fork
+    - app-branch: *app-branch
   steps:
     - install-app:
         action: "chefrun"
@@ -329,3 +318,120 @@ destroy:
         phase: setup-lb
         parameters:
           app-hosts: ${app-hosts}
+
+
+# =========== TESTING ==========
+test:
+    parameters:
+        - flavour: &flavour
+            description: ami-flavour
+            default: ubuntu10
+        - app-fork: *app-fork
+        - app-branch: *app-branch
+        - grid-remote:
+            description: Selenium Grid
+            default: x.x.x.x:4444
+    steps:
+        - ume:
+            action: _undeployme
+            phase: injection
+            output:
+                entry: entry
+                auth: auth
+                appId: appId
+                orgId: orgId
+                envId: envId
+        - rest-call:
+            action: restcall
+            precedingPhases: [ injection ]
+            parameters:
+                roles: [any]
+                command: "{$.entry}api/1/applications/{$.appId}/launch"
+                method: POST
+                body: 
+                    ! 
+                        '{{
+                          "environmentId": "{$.envId}",
+                          "instanceName": "Petclinic-tester {$.flavour}",
+                          "destroyInterval": "3600000",
+                          "base-url": "{$.app-url}",
+                          "grid-remote": "{$.grid-remote}",
+                          "app-fork": "{$.app-fork}",
+                          "app-branch": "{$.app-branch}",
+                          "flavour": "{$.flavour}"
+                        }}'
+                acceptAllCertificates: true
+                auth: "{$.auth}"
+                contentType: application/json
+                headers:
+                    Content-Type: application/json
+            output:
+                content: content
+    return:
+        tester.url:
+            description: Url of tester instance
+            value:
+                api: "{$.entry}api/1/instances/{$.content.id}"
+                gui: "{$.entry}organizations/{$.orgId}/instances/{$.content.id}"
+
+retest:
+    parameters:
+        - flavour: *flavour
+        - app-fork: *app-fork
+        - app-branch: *app-branch
+    steps:
+        - ume:
+            action: _undeployme
+            phase: injection
+            output:
+                entry: entry
+                auth: auth
+                instanceId: instanceId
+        - rest-call:
+            action: restcall
+            precedingPhases: [ injection ]
+            parameters:
+                roles: [any]
+                command: "{$.entry}api/1/instances/{$.instanceId}/retest"
+                method: POST
+                body: 
+                    ! 
+                        '{{
+                          "base-url": "{$.app-url}",
+                          "app-fork": "{$.app-fork}",
+                          "app-branch": "{$.app-branch}",
+                          "flavour": "{$.flavour}"
+                        }}'
+                acceptAllCertificates: true
+                auth: "{$.auth}"
+                headers:
+                    Content-Type: application/json
+            output:
+                content: content
+    return:
+        tester.url:
+            description: Url of tester instance
+            value:
+                api: "{$.entry}api/1/instances/{$.instanceId}"
+                gui: "{$.entry}organizations/{$.orgId}/instances/{$.instanceId}"
+        
+
+#this workflow bypass common parameters
+_undeployme:
+    parameters:
+        - settings:
+            description: bunch of settings
+    steps: []
+    return:
+        - entry:
+            value: "{$.settings.entry}"
+        - appId:
+            value: "{$.settings.appId}"
+        - orgId:
+            value: "{$.settings.orgId}"
+        - envId:
+            value: "{$.settings.envId}"
+        - instanceId:
+            value: "{$.settings.instanceId}"
+        - auth:
+            value: "{$.settings.auth}"

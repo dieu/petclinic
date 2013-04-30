@@ -1,0 +1,379 @@
+#For proper functionality ports 8888 and 8899 should be opened.
+#Opening 6655 should simplify a lerning curve, and what is happening with fileSystem locally.
+
+#These constants should be controlled from the environment
+_constants:
+    parameters:
+        # For advanced usage, almost as constants
+        - atdd-path:
+            description: Path to atdd report
+            default: /home/ubuntu/report/atdd
+        - dashboard-path:
+            description: Path to dashboard
+            default: /home/ubuntu/report/dashboard
+        # These parameters must be defined in environment to let s3 work
+        - access-key:
+            description: "access key / identity"
+        - secret-key:
+            description: "secret key / credentials"
+    steps: []
+    return:
+        - atdd-path:
+            value: ${atdd-path}
+        - dashboard-path:
+            value: ${dashboard-path}
+        - access-key:
+            value: ${access-key}
+        - secret-key:
+            value: ${secret-key}
+
+launch:
+    parameters:
+        - base-url: &base-url
+            description: Application base Url
+        - grid-remote:
+            description: Selenium Grid
+            default: x.x.x.x:4444
+        - app-fork: &app-fork
+            description: Source control fork
+            default: "dieu"
+        - app-branch: &app-branch
+            description: Source control branch
+            default: "HEAD"
+        - flavour: &flavour
+            description: ami-flavour
+            default: ubuntu
+    steps:
+        - inject-constants: &inject-constants
+            action: _constants
+            phase: injection
+            output:
+                atdd-path: atdd-path
+                dashboard-path: dashboard-path
+                access-key: access-key
+                secret-key: secret-key
+        - tester-provision:
+            action: provisionVms
+            phase: provision
+            parameters:
+                roleName: tester
+                hardwareId: m1.small
+                vmIdentity: ubuntu
+                imageId: us-east-1/ami-0fac7566
+            output:
+                 tester-host: ips
+
+        - install-java:
+            action: chefrun
+            phase: install-java
+            precedingPhases: [ provision ]
+            parameters:
+                roles: [ tester ]
+                isSolo: true
+                runList: ["recipe[java]" ]
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/cookbooks-v0.0.4.tar.gz"
+ 
+        - git-clone: &git-clone
+            action: .gitClone
+            phase: git-clone
+            precedingPhases: [ install-java ]
+            parameters:
+                url: "https://github.com/${app-fork}/petclinic.git"
+                branch: "${app-branch}"
+                targetDirectory: "/tmp/petclinic"
+
+        - get-maven:
+            action: chefrun
+            phase: get-maven
+            precedingPhases: [ install-java ]
+            parameters:
+                roles: [ tester ]
+                isSolo: true
+                runList: ["recipe[maven]"]
+                recipeUrl: "https://s3.amazonaws.com/adp-chef/petclinic_cookbooks-v2.tar.gz"
+                jattrs:
+                    maven:
+                        version: 3
+                        setup_bin: true
+                        "3":
+                            url: "http://apache.mirrors.tds.net/maven/maven-3/3.0.5/binaries/apache-maven-3.0.5-bin.tar.gz"
+
+        - prepare-test-storage:
+            action: .prepare_s3cmd
+            phase: init-test-storage
+            precedingPhases: [ git-clone, get-maven ]
+
+        - software-prepare-complete:
+            action: wait          
+            phase: prepared
+            precedingPhases: [ injection, install-java, get-maven, git-clone, init-test-storage ]
+
+
+        - test: &test
+            action: execrun
+            phase: testing
+            precedingPhases: [ prepared ] 
+            parameters:
+                roles: [ tester ]
+                command:
+                    - bash 
+                    - "-c" 
+                    -
+                        !
+                            cd /tmp/petclinic/; rm -rf ${atdd-path}; mvn -f itpom.xml clean integration-test thucydides:aggregate -Dwebdriver.base.url=${base-url} -Dthucydides.outputDirectory=${atdd-path} -Dthucydides.sourceDirectory=${atdd-path} -Dwebdriver.remote.url=http://${grid-remote}/wd/hub -Dmaven.test.failure.ignore=true; true 
+
+        - aggregate-report: &aggregate-report
+            action: .generateReport
+            phase: reporting
+            precedingPhases: [ testing ]
+            parameters:
+                 app-version: "{$.flavour}"
+            output:
+                 test-progress: progress
+                 test-history: history
+                 test-run-id: run-id
+        - http-total:
+            action: execrun
+            phase: share
+            precedingPhases: [ provision ] 
+            parameters:
+                roles: [ tester ]
+                command:
+                    - "bash -c 'cd / ; python -m SimpleHTTPServer 6655 &'"
+        - http-report:
+            action: execrun
+            phase: share2
+            precedingPhases: [ reporting ] 
+            parameters:
+                roles: [ tester ]
+                command:
+                    - "bash -c 'cd ${atdd-path} ; python -m SimpleHTTPServer 8888 &'"
+        - http-dashboard:
+            action: execrun
+            phase: share3
+            precedingPhases: [ reporting ] 
+            parameters:
+                roles: [ tester ]
+                command:
+                    - "bash -c 'cd ${dashboard-path} ; python -m SimpleHTTPServer 8899 &'"
+
+    return:        
+        manage.tester-ip:
+            description: "Tester's ip"
+            value: "{$.tester-host[0]}"
+        manage.navigate:
+            description: "File system over web"
+            value: "http://{$.tester-host[0]}:6655"
+        manage.application:
+            description: "Application under test url"
+            value: ${base-url}
+        dashboard.attd-report:
+            description: "Attd report"
+            value: "http://{$.tester-host[0]}:8888"
+        dashboard.reports:
+            description: "Dashboard"
+            value: "http://{$.tester-host[0]}:8899"
+        dashboard.selenium-console:
+            description: "Selenium Console"
+            value: "http://${grid-remote}/grid/beta/console"
+        test.progress: &return-progress
+            description: "Latest Test Summary"
+            value: ${test-progress} 
+        test.history: &return-history
+            description: "Test History"
+            value: ${test-history}
+        test.run-id: &return-run-id
+            description: "Latest Run Id"
+            value: ${test-run-id}  
+
+retest:
+    parameters:
+        - base-url: *base-url
+        - app-fork: *app-fork
+        - app-branch: *app-branch
+        - flavour: *flavour
+ 
+    steps:
+        - inject-constants: *inject-constants
+        - git-clone: *git-clone
+        - git-reclone-complete:
+            action: wait          
+            phase: prepared
+            precedingPhases: [ injection, git-clone ]
+        - test: *test
+        - aggregate-report: *aggregate-report
+    return:  
+        test.progress: *return-progress
+        test.history: *return-history
+        test.run-id: *return-run-id
+
+#macroses
+.gitClone:
+    parameters:
+        - url:
+            description: git url
+        - targetDirectory:
+            description: where to clone
+        - branch:
+            description: Source control branch
+    steps:
+        - install-git:
+            action: execrun
+            description: Install git on new machine
+            phase: "install-git"
+            parameters:
+                roles: [ tester ]
+                isSudo: true
+                command: 
+                    - "which git || (which yum && sudo yum -y install git-core || sudo apt-get -y --force-yes install git-core) || true"
+        - clone-repo:
+            action: execrun
+            description: Sample command for cloning git repos
+            phase: "clone"
+            precedingPhases: ["install-git"]
+            parameters:
+                roles: [ tester ]
+                command:
+                    # this is the quikest I can do, is remove and clone other branch, but the right way are remotes.
+                    - "rm -rf ${targetDirectory}; git clone ${url} -b ${branch} ${targetDirectory}"
+
+.generateReport:
+    parameters:
+        - app-version:
+            description: Build Id
+            default: latest
+    steps:
+        - inject-constants: *inject-constants
+        - report-gen:
+            action: execrun
+            description: Generate detailed report
+            phase: "generate-report"
+            precedingPhases: [ injection ]
+            parameters:
+                roles: [ tester ]
+                command: 
+                    - bash 
+                    - "-c" 
+                    -
+                        !
+                            mkdir -p ${dashboard-path} && cp /tmp/petclinic/report/*.* ${dashboard-path}; 
+                            cd ${dashboard-path}; 
+                            ./collect.sh /tmp/petclinic//target/failsafe-reports/ ${app-version}__${app-fork}__${app-branch}
+        - install-xsltproc:
+            action: execrun
+            phase: "prepare-xsltoroc"
+            precedingPhases: ["generate-report"]
+            parameters:
+                roles: [ tester ]
+                isSudo: true
+                command:
+                    - "which xsltproc || (which yum && sudo yum -y install xsltproc || sudo apt-get -y --force-yes install xsltproc) || true"
+        - progress-gen:
+            action: execrun
+            phase: "generate-progress"
+            precedingPhases: ["prepare-xsltoroc"]
+            parameters:
+                roles: [ tester ]
+                command:
+                    - bash 
+                    - "-c" 
+                    -
+                        !
+                            cd ${dashboard-path}; 
+                            xsltproc progress.xsl ${app-version}__${app-fork}__${app-branch}.xml
+            output:
+                progress_raw: stdout
+        - progress-log:
+            action: execrun
+            phase: "generate-progress"
+            precedingPhases: ["prepare-xsltoroc"]
+            parameters:
+                roles: [ tester ]
+                command:
+                    - "find ${dashboard-path}/ -name '*.xml' -print0 | xargs -0 -I %% bash -c 'echo \"file: %% | $$(xsltproc ${dashboard-path}/progress.xsl %%)\"'"
+            output:
+                progress_log: stdout
+        - upload-to-test-storage:
+            action: .upload
+            precedingPhases: ["generate-report"]
+            parameters:
+                app-version: ${app-version}
+    return:        
+        progress:
+            description: "Test summary"
+            value: "{$.aggregate-report~progress_raw['*'][-1:]}" #I don't like this syntax
+        history:
+            description: "History"
+            value: ${progress_log} #todo flatten map (remove ip)
+        run-id:
+            description: "Test Run identifier"
+            value: ${app-version}__${app-fork}__${app-branch}
+
+.prepare_s3cmd:
+    steps:
+        - inject-constants: *inject-constants
+        - install-s3cmd:
+            action: execrun
+            phase: "install-s3cmd"
+            precedingPhases: ["provision"]
+            parameters:
+                roles: [ tester ]
+                isSudo: true
+                command:
+                    - "which s3cmd || (which yum && sudo yum -y install s3cmd || sudo apt-get -y --force-yes install s3cmd) || true"
+        - configure-s3cmd:
+            action: execrun
+            phase: "config-s3cmd"
+            precedingPhases: [ injection, "install-s3cmd"]
+            parameters:
+                roles: [ tester ]
+                command:
+                    - 
+                        !
+                            wget https://s3.amazonaws.com/adp-chef/s3cmd.conf.sh;
+                            chmod +x s3cmd.conf.sh; 
+                            AWS_ACCESS_KEY_ID=${access-key} AWS_SECRET_ACCESS_KEY=${secret-key} ./s3cmd.conf.sh >~/.s3cfg
+
+#On your s3 account petclinic-test-results bucket should exist
+.upload:
+    parameters:
+        - app-version:
+            description: Build Id
+    steps:
+        - inject-constants: *inject-constants
+        - upload-results:
+            action: execrun
+            precedingPhases: [ injection ]
+            parameters:
+                roles: [ tester ]
+                command:
+                    - bash 
+                    - "-c" 
+                    -
+                        !
+                            export RESULT_STAMP=${app-fork}_${app-branch}_${app-version}_$$(date -u +%Y%m%d%H%M%S); 
+                            rm -rf /tmp/uploads; 
+                            mkdir -p /tmp/uploads/$$RESULT_STAMP; 
+                            cp ${dashboard-path}/${app-version}__${app-fork}__${app-branch}.xml /tmp/uploads/$$RESULT_STAMP/${app-version}__${app-fork}__${app-branch}.xml; 
+                            s3cmd sync /tmp/uploads/$$RESULT_STAMP s3://petclinic-test-results/; 
+                            s3cmd sync ${atdd-path} s3://petclinic-test-results/$$RESULT_STAMP/
+
+manual-control:
+    parameters:
+        - run-command:
+            description: command to execute
+            default: "bash -c 'echo define this'"
+    steps:
+        - custom-exec:
+            action: execrun
+            phase: testing
+            precedingPhases: [ prepared ] 
+            parameters:
+                roles: [ tester ]
+                command:
+                    - "${run-command}"
+
+destroy:
+    steps:
+        - destroy:
+            action: compute.shrink-all
