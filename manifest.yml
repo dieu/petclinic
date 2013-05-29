@@ -44,7 +44,7 @@ launch:
 
         - lb-install:
             action: "chefrun"
-            precedingPhases: [ deploy-db ]
+            precedingPhases: [ provision ]
             phase: install-lb
             parameters:
               roles: [ lb-node ]
@@ -54,7 +54,7 @@ launch:
 
         - app:
             action: .install.app
-            precedingPhases: [ install-lb ]
+            precedingPhases: [ provision ]
             phase: deploy-app
             parameters:
               db-hosts: ${db-hosts}
