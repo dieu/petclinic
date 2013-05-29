@@ -50,7 +50,7 @@ launch:
               roles: [ lb-node ]
               runList: ["recipe[haproxy]"]
               isSolo: true
-              recipeUrl: "https://github.com/cometera/cookbooks/raw/0.1/cookbooks.tar.gz"
+              recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
 
         - app:
             action: .install.app
@@ -208,7 +208,7 @@ destroy:
           roles: [ db-node ]
           runList: ["recipe[mysql::server]"]
           isSolo: true
-          recipeUrl: "https://github.com/cometera/cookbooks/raw/0.1/cookbooks.tar.gz"
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
           jattrs:
               mysql:
                 server_root_password: e653e94ee8d064ec95ef5a1381c87a23
@@ -223,7 +223,7 @@ destroy:
           roles: [ db-node ]
           runList: ["recipe[war::mysql]"]
           isSolo: true
-          recipeUrl: "https://github.com/cometera/cookbooks/raw/0.1/cookbooks.tar.gz"
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
           jattrs:
               database:
                 name: "petclinic"
@@ -244,7 +244,7 @@ destroy:
           roles: [ app-node ]
           runList: ["recipe[war]"]
           isSolo: true
-          recipeUrl: "https://github.com/cometera/cookbooks/raw/0.1/cookbooks.tar.gz"
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
           jattrs:
             war:
               deploy:
@@ -260,7 +260,7 @@ destroy:
           roles: [ app-node ]
           runList: ["recipe[war::configure]"]
           isSolo: true
-          recipeUrl: "https://github.com/cometera/cookbooks/raw/0.1/cookbooks.tar.gz"
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
           jattrs:
             configure:
               source: "https://raw.github.com/${app-fork}/petclinic/${app-branch}/src/main/resources/db/mysql/petclinic-database.properties.erb"
@@ -280,7 +280,7 @@ destroy:
           roles: [ lb-node ]
           runList: ["recipe[war::lb]"]
           isSolo: true
-          recipeUrl: "https://github.com/cometera/cookbooks/raw/0.1/cookbooks.tar.gz"
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
           jattrs:
             haproxy.rebalance:
               nodes: ${app-hosts}
@@ -301,7 +301,7 @@ destroy:
           roles: [ app-node ]
           runList: ["recipe[tomcat]"]
           isSolo: true
-          recipeUrl: "https://github.com/cometera/cookbooks/raw/0.1/cookbooks.tar.gz"
+          recipeUrl: "https://github.com/qubell/cookbooks/raw/0.1/cookbooks.tar.gz"
 
     - deploy:
         action: .deploy.app
