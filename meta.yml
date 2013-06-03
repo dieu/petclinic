@@ -1,0 +1,13 @@
+application:
+  name: "Java 3-tier Starter Kit"
+  link: https://github.com/dieu/petclinic
+  manifest: https://raw.github.com/dieu/petclinic/master/manifest.yml
+  provider:
+    name: "Qubell"
+    link: http://qubell.com
+  documentation:
+    overview: |
+      This application requires the following items to be conﬁgured in your environment:
+        * Amazon EC2 or Rackspace CloudServers account;
+        * Ports 80 and 8080 open on the ﬁrewall.
+      Please refer to the Getting Started for step-by-step instructions on how to conﬁgure your environment.
