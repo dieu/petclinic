@@ -15,22 +15,28 @@
 
 	<!-- Configurer that replaces ${...} placeholders with values from a properties file -->
 	<!-- (in this case, JDBC-related settings for the dataSource definition below) -->
-	<context:property-placeholder location="classpath:jdbc.properties"/>
+	<!--<context:property-placeholder location="classpath:jdbc.properties"/>-->
+
+    <bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+        <property name="jndiName" value="java:comp/env/jdbc/webapp"/>
+        <property name="lookupOnStartup" value="true"/>
+        <property name="proxyInterface" value="javax.sql.DataSource"/>
+    </bean>
 
 	<!-- DataSource configuration for Apache Commons DBCP. -->
-	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close"
-			p:driverClass="${jdbc.driverClassName}" p:jdbcUrl="${jdbc.url}"
-			p:user="${jdbc.username}" p:password="${jdbc.password}"
-            p:initialPoolSize="1" 
-  	    p:maxIdleTime="1800"
-   	    p:maxPoolSize="10"
-	    p:minPoolSize="1" 
- 	    p:checkoutTimeout="1000"
-	    p:idleConnectionTestPeriod="55"
-	    p:testConnectionOnCheckout="true"
-	    p:preferredTestQuery="select 1"
-            />
-	
+	<!--<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close"-->
+			<!--p:driverClass="${jdbc.driverClassName}" p:jdbcUrl="${jdbc.url}"-->
+			<!--p:user="${jdbc.username}" p:password="${jdbc.password}"-->
+            <!--p:initialPoolSize="1" -->
+  	    <!--p:maxIdleTime="1800"-->
+   	    <!--p:maxPoolSize="10"-->
+	    <!--p:minPoolSize="1" -->
+ 	    <!--p:checkoutTimeout="1000"-->
+	    <!--p:idleConnectionTestPeriod="55"-->
+	    <!--p:testConnectionOnCheckout="true"-->
+	    <!--p:preferredTestQuery="select 1"-->
+            <!--/>-->
+
 	<!-- JNDI DataSource for JEE environments -->
 	<!--
 	<jee:jndi-lookup id="dataSource" jndi-name="java:comp/env/jdbc/petclinic"/>

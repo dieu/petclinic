@@ -37,8 +37,8 @@
 	-->
 	<context-param>
 		<param-name>contextConfigLocation</param-name>
-		<!--<param-value>/WEB-INF/spring/applicationContext-jdbc.xml</param-value>-->
-        <param-value>/WEB-INF/spring/applicationContext-hibernate.xml</param-value>
+		<param-value>/WEB-INF/spring/applicationContext-jdbc.xml</param-value>
+        <!--<param-value>/WEB-INF/spring/applicationContext-hibernate.xml</param-value>-->
         <!--
 		<param-value>/WEB-INF/spring/applicationContext-jpa.xml</param-value>
 		-->
@@ -185,12 +185,10 @@
 		- Reference to PetClinic database.
 		- Only needed if not using a local DataSource but a JNDI one instead.
 	-->
-	<!--
 	<resource-ref>
-		<res-ref-name>jdbc/petclinic</res-ref-name>
+		<res-ref-name>jdbc/webapp</res-ref-name>
 		<res-type>javax.sql.DataSource</res-type>
 		<res-auth>Container</res-auth>
 	</resource-ref>
-	-->
 	
 </web-app>
